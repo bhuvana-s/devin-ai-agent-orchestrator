@@ -32,9 +32,10 @@ export const DEFAULT_AWS_CONFIG = {
   accessKeyId: '',
   secretAccessKey: '',
   sessionToken: '',
-  lambdaFunctionName: '',
+  lambdaFunctionName: 'AI-Agent-Dashboard-Executor-production',
   stepFunctionArn: '',
   s3Bucket: '',
+  apiUrl: 'https://rkx19twzgk.execute-api.us-east-1.amazonaws.com/production/',
 };
 
 /**

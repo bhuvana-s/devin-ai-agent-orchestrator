@@ -529,6 +529,22 @@ function AWSTab({ config, onChange }: { config: any; onChange: (config: any) => 
               className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-sky-500"
             />
           </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              API URL (optional)
+            </label>
+            <input
+              type="text"
+              value={config.aws.apiUrl || ''}
+              onChange={(e) => onChange({
+                ...config,
+                aws: { ...config.aws, apiUrl: e.target.value }
+              })}
+              placeholder="https://api.example.com/production/"
+              className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-sky-500"
+            />
+          </div>
         </div>
       </div>
     </div>

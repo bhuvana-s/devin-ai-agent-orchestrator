@@ -38,6 +38,7 @@ export interface AWSConfig {
   lambdaFunctionName?: string;
   stepFunctionArn?: string;
   s3Bucket?: string;
+  apiUrl?: string;
 }
 
 /**

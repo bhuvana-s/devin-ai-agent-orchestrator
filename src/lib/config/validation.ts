@@ -63,15 +63,17 @@ export function validateExecutionConfig(config: Partial<ExecutionConfig>): Valid
       warnings.push('AWS region may not be valid');
     }
     
+    // Only validate credentials if mode is explicitly set to 'real'
     if (config.mode === 'real') {
-      if (!aws.accessKeyId) {
+      if (!aws.accessKeyId || aws.accessKeyId.trim() === '') {
         errors.push('AWS Access Key ID is required for real execution mode');
       }
-      if (!aws.secretAccessKey) {
+      if (!aws.secretAccessKey || aws.secretAccessKey.trim() === '') {
         errors.push('AWS Secret Access Key is required for execution mode');
       }
+      // Lambda function is optional - we have a default one deployed
       if (!aws.lambdaFunctionName && !aws.stepFunctionArn) {
-        warnings.push('No Lambda function or Step Function configured for real execution');
+        warnings.push('No Lambda function or Step Function configured - using defaults');
       }
     }
   }
