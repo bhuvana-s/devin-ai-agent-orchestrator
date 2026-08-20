@@ -54,6 +54,7 @@ export default function CustomAgentBuilder({ isOpen, onClose, onSave }: CustomAg
     setNewFieldLabel('');
     setNewFieldType('text');
     setNewFieldDefaultValue('');
+    setNewFieldBooleanDefaultValue(false);
     setNewFieldRequired(false);
     setNewFieldOptions('');
     setNewParamKey('');

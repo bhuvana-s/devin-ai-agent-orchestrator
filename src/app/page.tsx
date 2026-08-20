@@ -229,6 +229,7 @@ Timestamp: ${new Date().toISOString()}`);
             onNodesChange={setCurrentNodes}
             onEdgesChange={setCurrentEdges}
             externalNodes={currentNodes}
+            externalEdges={currentEdges}
             onNodeRename={handleNodeRename}
             onNodeDelete={handleNodeDelete}
             onNodeEditConfig={handleNodeEditConfig}
