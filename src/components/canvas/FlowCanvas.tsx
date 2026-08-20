@@ -79,6 +79,10 @@ export default function FlowCanvas({
   }, [nodes, onNodesChange]);
 
   useEffect(() => {
+    if (edges.length > 0) {
+      hasInitializedEdges.current = true;
+    }
+
     if (onEdgesChange) {
       onEdgesChange(edges);
     }
@@ -162,10 +166,6 @@ export default function FlowCanvas({
 
   // Add some demo nodes on first load
   useEffect(() => {
-    if (edges.length > 0) {
-      hasInitializedEdges.current = true;
-    }
-
     if (nodes.length > 0) {
       hasInitializedNodes.current = true;
     } else if (!hasInitializedNodes.current) {
