@@ -52,6 +52,9 @@ export default function FlowCanvas({
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
   const hasInitializedNodes = useRef(false);
   const hasInitializedEdges = useRef(false);
+  const previousExternalNodesRef = useRef<Node<AgentData>[] | null>(null);
+  const previousExternalEdgesRef = useRef<Edge[] | null>(null);
+  const isInternalChangeRef = useRef(false);
 
   // Create a stable reference for callbacks to prevent unnecessary re-renders
   const stableCallbacks = useMemo(() => ({
@@ -71,10 +74,11 @@ export default function FlowCanvas({
     ),
   }), [stableCallbacks]);
 
-  // Expose nodes and edges to parent component
+  // Expose nodes and edges to parent component (only on internal changes)
   useEffect(() => {
-    if (onNodesChange) {
+    if (onNodesChange && isInternalChangeRef.current) {
       onNodesChange(nodes);
+      isInternalChangeRef.current = false;
     }
   }, [nodes, onNodesChange]);
 
@@ -83,24 +87,40 @@ export default function FlowCanvas({
       hasInitializedEdges.current = true;
     }
 
-    if (onEdgesChange) {
+    if (onEdgesChange && isInternalChangeRef.current) {
       onEdgesChange(edges);
+      isInternalChangeRef.current = false;
     }
   }, [edges, onEdgesChange]);
 
   // Sync external nodes with internal state (for status updates during execution)
   useEffect(() => {
-    if (externalNodes && (externalNodes.length > 0 || hasInitializedNodes.current)) {
+    // Only update if externalNodes actually changed
+    if (externalNodes && JSON.stringify(externalNodes) !== JSON.stringify(previousExternalNodesRef.current)) {
       setNodes(externalNodes);
+      previousExternalNodesRef.current = externalNodes;
     }
-  }, [externalNodes, setNodes]);
+  }, [externalNodes]);
 
   // Sync external edges with internal state
   useEffect(() => {
-    if (externalEdges && (externalEdges.length > 0 || hasInitializedEdges.current)) {
+    // Only update if externalEdges actually changed
+    if (externalEdges && JSON.stringify(externalEdges) !== JSON.stringify(previousExternalEdgesRef.current)) {
       setEdges(externalEdges);
+      previousExternalEdgesRef.current = externalEdges;
     }
-  }, [externalEdges, setEdges]);
+  }, [externalEdges]);
+
+  // Wrap internal change handlers to set the flag
+  const handleNodesChange = useCallback((changes: any) => {
+    isInternalChangeRef.current = true;
+    onNodesChangeInternal(changes);
+  }, [onNodesChangeInternal]);
+
+  const handleEdgesChange = useCallback((changes: any) => {
+    isInternalChangeRef.current = true;
+    onEdgesChangeInternal(changes);
+  }, [onEdgesChangeInternal]);
 
   const onConnect = useCallback(
     (params: Connection) => setEdges((eds) => addEdge({ 
@@ -237,8 +257,8 @@ export default function FlowCanvas({
       <ReactFlow
         nodes={nodes}
         edges={edges}
-        onNodesChange={onNodesChangeInternal}
-        onEdgesChange={onEdgesChangeInternal}
+        onNodesChange={handleNodesChange}
+        onEdgesChange={handleEdgesChange}
         onConnect={onConnect}
         onInit={setReactFlowInstance}
         nodeTypes={nodeTypes}
