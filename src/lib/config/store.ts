@@ -235,9 +235,33 @@ export const useConfigStore = create<ConfigState>()(
     }),
     {
       name: 'execution-config-storage',
-      partialize: (state) => ({
-        config: state.config,
-      }),
+      partialize: (state) => {
+        const { accessKeyId, secretAccessKey, sessionToken, ...aws } = state.config.aws;
+
+        return {
+          config: {
+            ...state.config,
+            aws,
+          } as ExecutionConfig,
+        };
+      },
+      merge: (persistedState, currentState) => {
+        const persisted = persistedState as Partial<ConfigState>;
+        const persistedConfig = persisted.config;
+
+        return {
+          ...currentState,
+          ...persisted,
+          config: {
+            ...currentState.config,
+            ...persistedConfig,
+            aws: {
+              ...currentState.config.aws,
+              ...persistedConfig?.aws,
+            },
+          },
+        };
+      },
     }
   )
 );

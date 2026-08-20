@@ -4,6 +4,7 @@ import { Brain, FileText, CheckCircle, MoreVertical, Edit2, Trash2, Settings } f
 import { motion, AnimatePresence } from 'framer-motion';
 import { AgentData, AgentType, CustomAgentType } from '@/lib/store';
 import { cn } from '@/lib/utils';
+import { getCustomAgentIcon } from '@/lib/custom-agent-icons';
 
 const agentConfig: Record<AgentType, { icon: React.ReactNode; color: string; gradient: string }> = {
   analyzer: {
@@ -56,6 +57,7 @@ function AgentNode({ data, selected, id, onRename, onDelete, onEditConfig, custo
     : null;
   
   const effectiveConfig = customAgentConfig || config;
+  const CustomIcon = customAgentConfig ? getCustomAgentIcon(customAgentConfig.icon).icon : null;
   
   // Editing state
   const [isEditing, setIsEditing] = useState(false);
@@ -142,7 +144,7 @@ function AgentNode({ data, selected, id, onRename, onDelete, onEditConfig, custo
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <div className={cn("p-1.5 rounded-lg bg-gray-900", effectiveConfig.color)}>
-              {effectiveConfig.icon}
+              {CustomIcon ? <CustomIcon className="w-5 h-5" /> : effectiveConfig.icon}
             </div>
             {isEditing ? (
               <input

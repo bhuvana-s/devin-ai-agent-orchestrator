@@ -14,12 +14,16 @@ export const handler = async (
   event: APIGatewayAuthorizerEvent,
   context: Context
 ): Promise<APIGatewayAuthorizerResult> => {
-  console.log('Authorizer event:', JSON.stringify(event, null, 2));
+  console.log('Authorizer request:', JSON.stringify({
+    requestId: context.awsRequestId,
+    type: event.type,
+    resource: event.methodArn,
+  }));
 
   try {
     // Extract authorization header
     let authHeader: string | undefined;
-    
+
     // Type guard for different authorizer event types
     if ('authorizationToken' in event) {
       authHeader = event.authorizationToken as string;
@@ -52,7 +56,7 @@ export const handler = async (
     });
 
   } catch (error) {
-    console.error('Authorization error:', error);
+    console.error('Authorization error:', error instanceof Error ? error.message : 'Unknown error occurred');
     return generatePolicy('user', 'Deny', event.methodArn);
   }
 };
@@ -83,7 +87,7 @@ async function validateApiKey(authHeader: string): Promise<boolean> {
     
     return false;
   } catch (error) {
-    console.error('Error validating API key:', error);
+    console.error('Error validating API key:', error instanceof Error ? error.message : 'Unknown error occurred');
     return false;
   }
 }
@@ -110,7 +114,7 @@ function extractUserInfo(authHeader: string): { userId: string; tier: string } {
       tier: 'free',
     };
   } catch (error) {
-    console.error('Error extracting user info:', error);
+    console.error('Error extracting user info:', error instanceof Error ? error.message : 'Unknown error occurred');
     return {
       userId: 'anonymous',
       tier: 'free',

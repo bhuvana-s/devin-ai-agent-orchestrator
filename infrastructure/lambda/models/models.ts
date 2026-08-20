@@ -57,7 +57,7 @@ export const handler = async (
       count: models.length,
     };
 
-    return createResponse(200, modelsResponse);
+    return createResponse(200, modelsResponse, event.headers);
 
   } catch (error) {
     console.error('Error listing models:', error);
@@ -65,21 +65,38 @@ export const handler = async (
     return createResponse(500, {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
-    });
+    }, event.headers);
   }
 };
 
 /**
  * Create HTTP response
  */
-function createResponse(statusCode: number, body: any): APIGatewayProxyResult {
+function createResponse(
+  statusCode: number,
+  body: any,
+  requestHeaders?: Record<string, string | undefined> | null
+): APIGatewayProxyResult {
+  const configuredOrigins = (process.env.ALLOWED_ORIGINS || '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+  const requestOrigin = Object.entries(requestHeaders || {})
+    .find(([key]) => key.toLowerCase() === 'origin')?.[1];
+  const allowOrigin = configuredOrigins.length === 0 || configuredOrigins.includes('*')
+    ? '*'
+    : requestOrigin && configuredOrigins.includes(requestOrigin)
+      ? requestOrigin
+      : configuredOrigins[0];
+
   return {
     statusCode,
     headers: {
       'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': allowOrigin,
       'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
       'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
+      ...(allowOrigin === '*' ? {} : { Vary: 'Origin' }),
     },
     body: JSON.stringify(body),
   };

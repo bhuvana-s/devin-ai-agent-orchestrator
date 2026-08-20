@@ -19,6 +19,11 @@ export interface AiAgentDashboardStackProps extends cdk.StackProps {
    * Bedrock model IDs to use
    */
   bedrockModels?: string[];
+
+  /**
+   * Allowed origins for API requests
+   */
+  allowedOrigins?: string[];
 }
 
 export class AiAgentDashboardStack extends cdk.Stack {
@@ -30,6 +35,7 @@ export class AiAgentDashboardStack extends cdk.Stack {
     super(scope, id, props);
 
     const environment = props.environment || 'production';
+    const allowedOrigins = props.allowedOrigins || ['*'];
     const bedrockModels = props.bedrockModels || [
       'amazon.titan-text-express-v1',
       'amazon.titan-text-lite-v1',
@@ -141,6 +147,7 @@ export class AiAgentDashboardStack extends cdk.Stack {
         ENVIRONMENT: environment,
         BEDROCK_REGION: this.region,
         BEDROCK_MODELS: bedrockModels.join(','),
+        ALLOWED_ORIGINS: allowedOrigins.join(','),
         LOG_LEVEL: environment === 'production' ? 'INFO' : 'DEBUG',
       },
       logRetention: logs.RetentionDays.ONE_WEEK,
@@ -163,7 +170,7 @@ export class AiAgentDashboardStack extends cdk.Stack {
       restApiName: `AI-Agent-Dashboard-API-${environment}`,
       description: 'API Gateway for AI Agent Dashboard',
       defaultCorsPreflightOptions: {
-        allowOrigins: apigateway.Cors.ALL_ORIGINS,
+        allowOrigins: allowedOrigins,
         allowMethods: apigateway.Cors.ALL_METHODS,
         allowHeaders: [
           'Content-Type',
@@ -178,7 +185,7 @@ export class AiAgentDashboardStack extends cdk.Stack {
         throttlingBurstLimit: 100,
         throttlingRateLimit: 50,
         loggingLevel: apigateway.MethodLoggingLevel.INFO,
-        dataTraceEnabled: true,
+        dataTraceEnabled: false,
         metricsEnabled: true,
       },
     });
@@ -244,6 +251,11 @@ export class AiAgentDashboardStack extends cdk.Stack {
       handler: 'dist/health-check.handler',
       code: lambda.Code.fromAsset('lambda/health-check'),
       timeout: Duration.seconds(30),
+      environment: {
+        BEDROCK_REGION: this.region,
+        ENVIRONMENT: environment,
+        ALLOWED_ORIGINS: allowedOrigins.join(','),
+      },
     });
     
     healthResource.addMethod('GET', new apigateway.LambdaIntegration(healthLambda));
@@ -259,6 +271,7 @@ export class AiAgentDashboardStack extends cdk.Stack {
       timeout: Duration.seconds(30),
       environment: {
         BEDROCK_REGION: this.region,
+        ALLOWED_ORIGINS: allowedOrigins.join(','),
       },
     });
     

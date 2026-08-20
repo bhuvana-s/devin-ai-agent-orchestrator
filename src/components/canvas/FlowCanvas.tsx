@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState, useMemo } from 'react';
+import { useCallback, useEffect, useState, useMemo, useRef } from 'react';
 import {
   ReactFlow,
   Background,
@@ -29,6 +29,7 @@ interface FlowCanvasProps {
   onNodesChange?: (nodes: Node<AgentData>[]) => void;
   onEdgesChange?: (edges: Edge[]) => void;
   externalNodes?: Node<AgentData>[];
+  externalEdges?: Edge[];
   onNodeRename?: (id: string, newLabel: string) => void;
   onNodeDelete?: (id: string) => void;
   onNodeEditConfig?: (id: string) => void;
@@ -40,6 +41,7 @@ export default function FlowCanvas({
   onNodesChange, 
   onEdgesChange, 
   externalNodes,
+  externalEdges,
   onNodeRename,
   onNodeDelete,
   onNodeEditConfig,
@@ -48,6 +50,8 @@ export default function FlowCanvas({
   const [nodes, setNodes, onNodesChangeInternal] = useNodesState<Node<AgentData>>([]);
   const [edges, setEdges, onEdgesChangeInternal] = useEdgesState<Edge>([]);
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
+  const hasInitializedNodes = useRef(false);
+  const hasInitializedEdges = useRef(false);
 
   // Create a stable reference for callbacks to prevent unnecessary re-renders
   const stableCallbacks = useMemo(() => ({
@@ -75,6 +79,10 @@ export default function FlowCanvas({
   }, [nodes, onNodesChange]);
 
   useEffect(() => {
+    if (edges.length > 0) {
+      hasInitializedEdges.current = true;
+    }
+
     if (onEdgesChange) {
       onEdgesChange(edges);
     }
@@ -82,10 +90,17 @@ export default function FlowCanvas({
 
   // Sync external nodes with internal state (for status updates during execution)
   useEffect(() => {
-    if (externalNodes && externalNodes.length > 0) {
+    if (externalNodes && (externalNodes.length > 0 || hasInitializedNodes.current)) {
       setNodes(externalNodes);
     }
   }, [externalNodes, setNodes]);
+
+  // Sync external edges with internal state
+  useEffect(() => {
+    if (externalEdges && (externalEdges.length > 0 || hasInitializedEdges.current)) {
+      setEdges(externalEdges);
+    }
+  }, [externalEdges, setEdges]);
 
   const onConnect = useCallback(
     (params: Connection) => setEdges((eds) => addEdge({ 
@@ -151,7 +166,9 @@ export default function FlowCanvas({
 
   // Add some demo nodes on first load
   useEffect(() => {
-    if (nodes.length === 0) {
+    if (nodes.length > 0) {
+      hasInitializedNodes.current = true;
+    } else if (!hasInitializedNodes.current) {
       const demoNodes: Node<AgentData>[] = [
         {
           id: 'analyzer-1',

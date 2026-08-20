@@ -2,6 +2,7 @@ import { Brain, FileText, CheckCircle, Plus, GripVertical, Sparkles, Trash2 } fr
 import { motion } from 'framer-motion';
 import { AgentType, CustomAgentType } from '@/lib/store';
 import { cn } from '@/lib/utils';
+import { getCustomAgentIcon } from '@/lib/custom-agent-icons';
 
 interface AgentBlockProps {
   type: AgentType;
@@ -164,19 +165,22 @@ export default function AgentPalette({ onDragStart, onClose, onOpenBuilder, cust
         {customAgentTypes.length > 0 && (
           <div className="space-y-3 pt-3 border-t border-gray-700">
             <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Custom Agents</h3>
-            {customAgentTypes.map((customAgent) => (
-              <AgentBlock
-                key={customAgent.id}
-                type="custom"
-                label={customAgent.label}
-                description={`Custom agent with ${customAgent.configFields.length} config fields`}
-                icon={<Sparkles className="w-5 h-5" />}
-                onDragStart={onDragStart}
-                customTypeId={customAgent.id}
-                isCustom={true}
-                onDelete={onDeleteCustomAgent}
-              />
-            ))}
+            {customAgentTypes.map((customAgent) => {
+              const CustomIcon = getCustomAgentIcon(customAgent.icon).icon;
+              return (
+                <AgentBlock
+                  key={customAgent.id}
+                  type="custom"
+                  label={customAgent.label}
+                  description={`Custom agent with ${customAgent.configFields.length} config fields`}
+                  icon={<CustomIcon className="w-5 h-5" />}
+                  onDragStart={onDragStart}
+                  customTypeId={customAgent.id}
+                  isCustom={true}
+                  onDelete={onDeleteCustomAgent}
+                />
+              );
+            })}
           </div>
         )}
       </div>

@@ -43,32 +43,29 @@ export const handler = async (
   const startTime = Date.now();
   
   try {
-    console.log('Received event:', JSON.stringify(event, null, 2));
-    
     // Parse request body
     if (!event.body) {
       return createResponse(400, {
         success: false,
         error: 'Request body is required',
-      });
+      }, event.headers);
     }
 
     const request: AgentRequest = JSON.parse(event.body);
-    console.log('Parsed request:', JSON.stringify(request, null, 2));
 
     // Validate required fields
     if (!request.agentType) {
       return createResponse(400, {
         success: false,
         error: 'agentType is required',
-      });
+      }, event.headers);
     }
 
     if (!request.prompt) {
       return createResponse(400, {
         success: false,
         error: 'prompt is required',
-      });
+      }, event.headers);
     }
 
     // Select model
@@ -77,8 +74,17 @@ export const handler = async (
       return createResponse(400, {
         success: false,
         error: `Invalid model ID. Available models: ${AVAILABLE_MODELS.join(', ')}`,
-      });
+      }, event.headers);
     }
+
+    console.log('Agent execution request:', JSON.stringify({
+      requestId: context.awsRequestId,
+      httpMethod: event.httpMethod,
+      resource: event.resource || event.path,
+      agentType: request.agentType,
+      modelId,
+      promptLength: request.prompt.length,
+    }));
 
     // Execute agent logic based on type
     const result = await executeAgent(request, modelId);
@@ -96,10 +102,10 @@ export const handler = async (
     };
 
     console.log('Execution completed successfully');
-    return createResponse(200, response);
+    return createResponse(200, response, event.headers);
 
   } catch (error) {
-    console.error('Error executing agent:', error);
+    console.error('Error executing agent:', error instanceof Error ? error.message : 'Unknown error occurred');
     
     const executionTime = Date.now() - startTime;
     
@@ -111,7 +117,7 @@ export const handler = async (
         executionTime,
         timestamp: new Date().toISOString(),
       },
-    });
+    }, event.headers);
   }
 };
 
@@ -217,14 +223,31 @@ async function executeAnalysisAgent(request: AgentRequest, modelId: string): Pro
 /**
  * Create HTTP response
  */
-function createResponse(statusCode: number, body: any): APIGatewayProxyResult {
+function createResponse(
+  statusCode: number,
+  body: any,
+  requestHeaders?: Record<string, string | undefined> | null
+): APIGatewayProxyResult {
+  const configuredOrigins = (process.env.ALLOWED_ORIGINS || '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+  const requestOrigin = Object.entries(requestHeaders || {})
+    .find(([key]) => key.toLowerCase() === 'origin')?.[1];
+  const allowOrigin = configuredOrigins.length === 0 || configuredOrigins.includes('*')
+    ? '*'
+    : requestOrigin && configuredOrigins.includes(requestOrigin)
+      ? requestOrigin
+      : configuredOrigins[0];
+
   return {
     statusCode,
     headers: {
       'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': allowOrigin,
       'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
       'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
+      ...(allowOrigin === '*' ? {} : { Vary: 'Origin' }),
     },
     body: JSON.stringify(body),
   };

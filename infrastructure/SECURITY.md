@@ -63,7 +63,7 @@ The infrastructure follows AWS security best practices with defense-in-depth app
 #### CORS Configuration
 - CORS enabled for frontend integration
 - Specific allowed headers and methods
-- Origin validation (configurable per environment)
+- Origin validation (configurable per environment with the stack `allowedOrigins` prop and Lambda `ALLOWED_ORIGINS` environment variable)
 
 #### Security Recommendations
 - Implement API key rotation policy

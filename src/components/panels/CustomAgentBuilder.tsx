@@ -2,25 +2,16 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Plus, Trash2, Brain, Cpu, Zap, Database, Globe, Code, Sparkles } from 'lucide-react';
+import { X, Plus, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CustomAgentType, ConfigField } from '@/lib/store';
+import { customAgentIconOptions } from '@/lib/custom-agent-icons';
 
 interface CustomAgentBuilderProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (agentType: CustomAgentType) => void;
 }
-
-const iconOptions = [
-  { name: 'Brain', icon: Brain, color: 'text-sky-400', gradient: 'from-sky-500/20 to-sky-600/10' },
-  { name: 'Cpu', icon: Cpu, color: 'text-purple-400', gradient: 'from-purple-500/20 to-purple-600/10' },
-  { name: 'Zap', icon: Zap, color: 'text-yellow-400', gradient: 'from-yellow-500/20 to-yellow-600/10' },
-  { name: 'Database', icon: Database, color: 'text-green-400', gradient: 'from-green-500/20 to-green-600/10' },
-  { name: 'Globe', icon: Globe, color: 'text-blue-400', gradient: 'from-blue-500/20 to-blue-600/10' },
-  { name: 'Code', icon: Code, color: 'text-pink-400', gradient: 'from-pink-500/20 to-pink-600/10' },
-  { name: 'Sparkles', icon: Sparkles, color: 'text-orange-400', gradient: 'from-orange-500/20 to-orange-600/10' },
-];
 
 const colorOptions = [
   { name: 'Sky', color: 'text-sky-400', gradient: 'from-sky-500/20 to-sky-600/10' },
@@ -36,7 +27,7 @@ const fieldTypes = ['text', 'number', 'boolean', 'select'] as const;
 export default function CustomAgentBuilder({ isOpen, onClose, onSave }: CustomAgentBuilderProps) {
   const [name, setName] = useState('');
   const [label, setLabel] = useState('');
-  const [selectedIcon, setSelectedIcon] = useState(iconOptions[0]);
+  const [selectedIcon, setSelectedIcon] = useState(customAgentIconOptions[0]);
   const [selectedColor, setSelectedColor] = useState(colorOptions[0]);
   const [configFields, setConfigFields] = useState<ConfigField[]>([]);
   const [executionParams, setExecutionParams] = useState<Record<string, any>>({});
@@ -45,6 +36,7 @@ export default function CustomAgentBuilder({ isOpen, onClose, onSave }: CustomAg
   const [newFieldLabel, setNewFieldLabel] = useState('');
   const [newFieldType, setNewFieldType] = useState<typeof fieldTypes[number]>('text');
   const [newFieldDefaultValue, setNewFieldDefaultValue] = useState('');
+  const [newFieldBooleanDefaultValue, setNewFieldBooleanDefaultValue] = useState(false);
   const [newFieldRequired, setNewFieldRequired] = useState(false);
   const [newFieldOptions, setNewFieldOptions] = useState('');
 
@@ -54,7 +46,7 @@ export default function CustomAgentBuilder({ isOpen, onClose, onSave }: CustomAg
   const resetForm = () => {
     setName('');
     setLabel('');
-    setSelectedIcon(iconOptions[0]);
+    setSelectedIcon(customAgentIconOptions[0]);
     setSelectedColor(colorOptions[0]);
     setConfigFields([]);
     setExecutionParams({});
@@ -62,6 +54,7 @@ export default function CustomAgentBuilder({ isOpen, onClose, onSave }: CustomAg
     setNewFieldLabel('');
     setNewFieldType('text');
     setNewFieldDefaultValue('');
+    setNewFieldBooleanDefaultValue(false);
     setNewFieldRequired(false);
     setNewFieldOptions('');
     setNewParamKey('');
@@ -75,7 +68,7 @@ export default function CustomAgentBuilder({ isOpen, onClose, onSave }: CustomAg
       key: newFieldKey,
       label: newFieldLabel,
       type: newFieldType,
-      defaultValue: newFieldType === 'boolean' ? newFieldRequired : newFieldDefaultValue,
+      defaultValue: newFieldType === 'boolean' ? newFieldBooleanDefaultValue : newFieldDefaultValue,
       required: newFieldRequired,
       options: newFieldType === 'select' ? newFieldOptions.split(',').map(o => o.trim()) : undefined,
     };
@@ -85,6 +78,7 @@ export default function CustomAgentBuilder({ isOpen, onClose, onSave }: CustomAg
     setNewFieldLabel('');
     setNewFieldType('text');
     setNewFieldDefaultValue('');
+    setNewFieldBooleanDefaultValue(false);
     setNewFieldRequired(false);
     setNewFieldOptions('');
   };
@@ -198,7 +192,7 @@ export default function CustomAgentBuilder({ isOpen, onClose, onSave }: CustomAg
                 Select Icon
               </label>
               <div className="grid grid-cols-7 gap-2">
-                {iconOptions.map((option) => {
+                {customAgentIconOptions.map((option) => {
                   const Icon = option.icon;
                   return (
                     <button
@@ -313,13 +307,25 @@ export default function CustomAgentBuilder({ isOpen, onClose, onSave }: CustomAg
                   ))}
                 </select>
                 
-                <input
-                  type="text"
-                  value={newFieldDefaultValue}
-                  onChange={(e) => setNewFieldDefaultValue(e.target.value)}
-                  placeholder="Default value"
-                  className="px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-500 text-sm focus:outline-none focus:border-sky-500"
-                />
+                {newFieldType === 'boolean' ? (
+                  <label className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300">
+                    <input
+                      type="checkbox"
+                      checked={newFieldBooleanDefaultValue}
+                      onChange={(e) => setNewFieldBooleanDefaultValue(e.target.checked)}
+                      className="w-4 h-4 rounded border-gray-600 bg-gray-800 text-sky-500 focus:ring-sky-500"
+                    />
+                    Default value
+                  </label>
+                ) : (
+                  <input
+                    type="text"
+                    value={newFieldDefaultValue}
+                    onChange={(e) => setNewFieldDefaultValue(e.target.value)}
+                    placeholder="Default value"
+                    className="px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-500 text-sm focus:outline-none focus:border-sky-500"
+                  />
+                )}
               </div>
 
               {newFieldType === 'select' && (
