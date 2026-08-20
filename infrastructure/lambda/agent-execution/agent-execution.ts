@@ -138,6 +138,82 @@ async function executeAgent(request: AgentRequest, modelId: string): Promise<str
 }
 
 /**
+ * Generate correct request body based on model type
+ */
+function generateRequestBody(modelId: string, prompt: string, parameters: any): any {
+  // Llama models use different format than Titan
+  if (modelId.startsWith('meta.llama')) {
+    return {
+      prompt,
+      max_gen_len: parameters.maxTokens,
+      temperature: parameters.temperature,
+      top_p: parameters.topP,
+    };
+  }
+  
+  // Anthropic Claude models
+  if (modelId.startsWith('anthropic.claude')) {
+    return {
+      anthropic_version: "bedrock-2023-05-31",
+      max_tokens: parameters.maxTokens,
+      temperature: parameters.temperature,
+      top_p: parameters.topP,
+      messages: [
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+    };
+  }
+  
+  // Mistral models
+  if (modelId.startsWith('mistral')) {
+    return {
+      prompt,
+      max_tokens: parameters.maxTokens,
+      temperature: parameters.temperature,
+      top_p: parameters.topP,
+    };
+  }
+  
+  // DeepSeek models
+  if (modelId.startsWith('deepseek')) {
+    return {
+      prompt,
+      max_new_tokens: parameters.maxTokens,
+      temperature: parameters.temperature,
+      top_p: parameters.topP,
+    };
+  }
+  
+  // Default to Titan format (for backward compatibility)
+  return {
+    inputText: prompt,
+    textGenerationConfig: parameters,
+  };
+}
+
+/**
+ * Parse response body based on model type
+ */
+function parseResponseBody(modelId: string, responseBody: any): string {
+  // Handle different response formats based on model type
+  if (modelId.startsWith('meta.llama')) {
+    return responseBody.generation?.text || responseBody.content?.[0]?.text || '';
+  } else if (modelId.startsWith('anthropic.claude')) {
+    return responseBody.content?.[0]?.text || '';
+  } else if (modelId.startsWith('mistral')) {
+    return responseBody.outputs?.[0]?.text || '';
+  } else if (modelId.startsWith('deepseek')) {
+    return responseBody.choices?.[0]?.text || '';
+  } else {
+    // Default format (Titan)
+    return responseBody.outputText || responseBody.results?.[0]?.outputText || '';
+  }
+}
+
+/**
  * Execute chat agent
  */
 async function executeChatAgent(request: AgentRequest, modelId: string): Promise<string> {
@@ -148,20 +224,40 @@ async function executeChatAgent(request: AgentRequest, modelId: string): Promise
     stopSequences: request.parameters?.stopSequences,
   };
 
+  // Generate correct request body based on model type
+  const requestBody = generateRequestBody(modelId, request.prompt, parameters);
+
   const command = new InvokeModelCommand({
     modelId,
     contentType: 'application/json',
     accept: 'application/json',
-    body: JSON.stringify({
-      inputText: request.prompt,
-      textGenerationConfig: parameters,
-    }),
+    body: JSON.stringify(requestBody),
   });
 
   const response = await bedrockClient.send(command);
   const responseBody = JSON.parse(new TextDecoder().decode(response.body));
   
-  return responseBody.outputText || responseBody.results?.[0]?.outputText || 'No response generated';
+  console.log('Bedrock response:', JSON.stringify(responseBody, null, 2));
+  
+  return parseResponseBody(modelId, responseBody) || 'No response generated';
+  
+  // Handle different response formats based on model type
+  let result = '';
+  
+  if (modelId.startsWith('meta.llama')) {
+    result = responseBody.generation?.text || responseBody.content?.[0]?.text || '';
+  } else if (modelId.startsWith('anthropic.claude')) {
+    result = responseBody.content?.[0]?.text || '';
+  } else if (modelId.startsWith('mistral')) {
+    result = responseBody.outputs?.[0]?.text || '';
+  } else if (modelId.startsWith('deepseek')) {
+    result = responseBody.choices?.[0]?.text || '';
+  } else {
+    // Default format (Titan)
+    result = responseBody.outputText || responseBody.results?.[0]?.outputText || '';
+  }
+  
+  return result || 'No response generated';
 }
 
 /**
@@ -176,20 +272,39 @@ async function executeCodeAgent(request: AgentRequest, modelId: string): Promise
     topP: request.parameters?.topP || 0.95,
   };
 
+  const requestBody = generateRequestBody(modelId, codePrompt, parameters);
+
   const command = new InvokeModelCommand({
     modelId,
     contentType: 'application/json',
     accept: 'application/json',
-    body: JSON.stringify({
-      inputText: codePrompt,
-      textGenerationConfig: parameters,
-    }),
+    body: JSON.stringify(requestBody),
   });
 
   const response = await bedrockClient.send(command);
   const responseBody = JSON.parse(new TextDecoder().decode(response.body));
   
-  return responseBody.outputText || responseBody.results?.[0]?.outputText || 'No code generated';
+  console.log('Bedrock response:', JSON.stringify(responseBody, null, 2));
+  
+  return parseResponseBody(modelId, responseBody) || 'No response generated';
+  
+  // Handle different response formats based on model type
+  let result = '';
+  
+  if (modelId.startsWith('meta.llama')) {
+    result = responseBody.generation?.text || responseBody.content?.[0]?.text || '';
+  } else if (modelId.startsWith('anthropic.claude')) {
+    result = responseBody.content?.[0]?.text || '';
+  } else if (modelId.startsWith('mistral')) {
+    result = responseBody.outputs?.[0]?.text || '';
+  } else if (modelId.startsWith('deepseek')) {
+    result = responseBody.choices?.[0]?.text || '';
+  } else {
+    // Default format (Titan)
+    result = responseBody.outputText || responseBody.results?.[0]?.outputText || '';
+  }
+  
+  return result || 'No code generated';
 }
 
 /**
@@ -204,18 +319,21 @@ async function executeAnalysisAgent(request: AgentRequest, modelId: string): Pro
     topP: request.parameters?.topP || 0.9,
   };
 
+  const requestBody = generateRequestBody(modelId, analysisPrompt, parameters);
+
   const command = new InvokeModelCommand({
     modelId,
     contentType: 'application/json',
     accept: 'application/json',
-    body: JSON.stringify({
-      inputText: analysisPrompt,
-      textGenerationConfig: parameters,
-    }),
+    body: JSON.stringify(requestBody),
   });
 
   const response = await bedrockClient.send(command);
   const responseBody = JSON.parse(new TextDecoder().decode(response.body));
+  
+  console.log('Bedrock response:', JSON.stringify(responseBody, null, 2));
+  
+  return parseResponseBody(modelId, responseBody) || 'No response generated';
   
   return responseBody.outputText || responseBody.results?.[0]?.outputText || 'No analysis generated';
 }

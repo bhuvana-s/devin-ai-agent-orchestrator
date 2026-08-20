@@ -37,10 +37,15 @@ export class AiAgentDashboardStack extends cdk.Stack {
     const environment = props.environment || 'production';
     const allowedOrigins = props.allowedOrigins || ['*'];
     const bedrockModels = props.bedrockModels || [
-      'amazon.titan-text-express-v1',
-      'amazon.titan-text-lite-v1',
-      'anthropic.claude-v2',
-      'anthropic.claude-v1',
+      'meta.llama3-8b-instruct-v1:0',
+      'meta.llama3-70b-instruct-v1:0',
+      'meta.llama3-1-8b-instruct-v1:0',
+      'meta.llama3-1-70b-instruct-v1:0',
+      'anthropic.claude-haiku-4-5-20251001-v1:0',
+      'anthropic.claude-sonnet-4-20250514-v1:0',
+      'mistral.mistral-7b-instruct-v0:2',
+      'mistral.mixtral-8x7b-instruct-v0:1',
+      'deepseek.r1-v1:0',
     ];
 
     // ============================================
