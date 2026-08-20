@@ -139,7 +139,7 @@ export class AiAgentDashboardStack extends cdk.Stack {
       functionName: `AI-Agent-Dashboard-Executor-${environment}`,
       description: 'Lambda function for executing AI agent workflows with Bedrock',
       runtime: lambda.Runtime.NODEJS_18_X,
-      handler: 'agent-execution.handler',
+      handler: 'dist/agent-execution.handler',
       role: this.bedrockAccessRole,
       timeout: Duration.minutes(15),
       memorySize: 512,
@@ -214,7 +214,7 @@ export class AiAgentDashboardStack extends cdk.Stack {
         handler: new lambda.Function(this, 'AuthorizerLambda', {
           functionName: `AI-Agent-Dashboard-Authorizer-${environment}`,
           runtime: lambda.Runtime.NODEJS_18_X,
-          handler: 'authorizer.handler',
+          handler: 'dist/authorizer.handler',
           code: lambda.Code.fromAsset('lambda/authorizer'),
           role: this.bedrockAccessRole,
         }),
@@ -248,7 +248,7 @@ export class AiAgentDashboardStack extends cdk.Stack {
     const healthLambda = new lambda.Function(this, 'HealthCheckLambda', {
       functionName: `AI-Agent-Dashboard-Health-${environment}`,
       runtime: lambda.Runtime.NODEJS_18_X,
-      handler: 'health-check.handler',
+      handler: 'dist/health-check.handler',
       code: lambda.Code.fromAsset('lambda/health-check'),
       timeout: Duration.seconds(30),
       environment: {
@@ -265,7 +265,7 @@ export class AiAgentDashboardStack extends cdk.Stack {
     const modelsLambda = new lambda.Function(this, 'ModelsLambda', {
       functionName: `AI-Agent-Dashboard-Models-${environment}`,
       runtime: lambda.Runtime.NODEJS_18_X,
-      handler: 'models.handler',
+      handler: 'dist/models.handler',
       code: lambda.Code.fromAsset('lambda/models'),
       role: this.bedrockAccessRole,
       timeout: Duration.seconds(30),
