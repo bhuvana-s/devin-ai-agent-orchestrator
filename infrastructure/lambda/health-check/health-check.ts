@@ -1,4 +1,5 @@
 import { Context, APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
+import { createResponse } from '../layers/utils/response';
 
 interface HealthCheckResponse {
   status: string;
@@ -42,7 +43,7 @@ export const handler = async (
 
     console.log('Health check result:', JSON.stringify(response, null, 2));
     
-    return createResponse(allHealthy ? 200 : 503, response);
+    return createResponse(allHealthy ? 200 : 503, response, event.headers);
 
   } catch (error) {
     console.error('Health check error:', error);
@@ -51,7 +52,7 @@ export const handler = async (
       status: 'unhealthy',
       timestamp: new Date().toISOString(),
       error: error instanceof Error ? error.message : 'Unknown error',
-    });
+    }, event.headers);
   }
 };
 
@@ -84,18 +85,4 @@ function checkMemoryUsage(): boolean {
     console.error('Memory check failed:', error);
     return false;
   }
-}
-
-/**
- * Create HTTP response
- */
-function createResponse(statusCode: number, body: any): APIGatewayProxyResult {
-  return {
-    statusCode,
-    headers: {
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*',
-    },
-    body: JSON.stringify(body),
-  };
 }

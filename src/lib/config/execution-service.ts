@@ -18,10 +18,13 @@ export interface ExecutionResult {
  */
 export interface WorkflowExecutionResult {
   success: boolean;
+  aborted?: boolean;
   results: ExecutionResult[];
   totalExecutionTime: number;
   error?: string;
 }
+
+export const EXECUTION_ABORTED_MESSAGE = 'Execution aborted by user';
 
 /**
  * Execution service for handling both simulation and real AWS execution
@@ -51,7 +54,8 @@ export class ExecutionService {
     onLog?: (level: 'info' | 'warning' | 'error' | 'success', message: string, agentId?: string) => void,
     onReasoning?: (agentId: string, step: string) => void
   ): Promise<WorkflowExecutionResult> {
-    this.abortController = new AbortController();
+    const abortController = new AbortController();
+    this.abortController = abortController;
     const startTime = Date.now();
     const results: ExecutionResult[] = [];
 
@@ -65,7 +69,7 @@ export class ExecutionService {
           onProgress,
           onLog,
           onReasoning,
-          this.abortController.signal
+          abortController.signal
         );
         results.push(...simResults);
       } else {
@@ -75,12 +79,16 @@ export class ExecutionService {
           onProgress,
           onLog,
           onReasoning,
-          this.abortController.signal
+          abortController.signal
         );
         results.push(...realResults);
       }
 
       const totalExecutionTime = Date.now() - startTime;
+
+      if (abortController.signal.aborted) {
+        throw new Error(EXECUTION_ABORTED_MESSAGE);
+      }
       
       onLog?.('success', 'Workflow execution completed successfully!');
       
@@ -92,7 +100,16 @@ export class ExecutionService {
     } catch (error) {
       const totalExecutionTime = Date.now() - startTime;
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      
+
+      if (abortController.signal.aborted) {
+        return {
+          success: false,
+          aborted: true,
+          results,
+          totalExecutionTime,
+        };
+      }
+
       onLog?.('error', `Workflow execution failed: ${errorMessage}`);
       
       return {
@@ -122,7 +139,7 @@ export class ExecutionService {
 
     for (const node of nodes) {
       if (signal?.aborted) {
-        throw new Error('Execution aborted by user');
+        throw new Error(EXECUTION_ABORTED_MESSAGE);
       }
 
       const nodeType = node.data.type;
@@ -236,7 +253,7 @@ export class ExecutionService {
     
     for (const node of nodes) {
       if (signal?.aborted) {
-        throw new Error('Execution aborted by user');
+        throw new Error(EXECUTION_ABORTED_MESSAGE);
       }
 
       const nodeType = node.data.type;
@@ -281,6 +298,10 @@ export class ExecutionService {
           executionTime: 2000, // This would be actual execution time
         });
       } catch (error) {
+        if (signal?.aborted) {
+          throw new Error(EXECUTION_ABORTED_MESSAGE);
+        }
+
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         onProgress?.(nodeId, 'error');
         onLog?.('error', `${nodeLabel}: ${errorMessage}`, nodeId);
@@ -317,7 +338,7 @@ export class ExecutionService {
 
     for (let attempt = 0; attempt <= retryConfig.maxRetries; attempt++) {
       if (signal?.aborted) {
-        throw new Error('Execution aborted');
+        throw new Error(EXECUTION_ABORTED_MESSAGE);
       }
 
       try {
@@ -366,7 +387,7 @@ export class ExecutionService {
       if (signal) {
         signal.addEventListener('abort', () => {
           clearTimeout(timeout);
-          reject(new Error('Aborted'));
+          reject(new Error(EXECUTION_ABORTED_MESSAGE));
         });
       }
     });

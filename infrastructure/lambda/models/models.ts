@@ -1,5 +1,6 @@
 import { Context, APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { BedrockClient, ListFoundationModelsCommand } from '@aws-sdk/client-bedrock';
+import { createResponse } from '../layers/utils/response';
 
 // Bedrock client
 const bedrockClient = new BedrockClient({
@@ -57,7 +58,7 @@ export const handler = async (
       count: models.length,
     };
 
-    return createResponse(200, modelsResponse);
+    return createResponse(200, modelsResponse, event.headers);
 
   } catch (error) {
     console.error('Error listing models:', error);
@@ -65,22 +66,6 @@ export const handler = async (
     return createResponse(500, {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
-    });
+    }, event.headers);
   }
 };
-
-/**
- * Create HTTP response
- */
-function createResponse(statusCode: number, body: any): APIGatewayProxyResult {
-  return {
-    statusCode,
-    headers: {
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
-      'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
-    },
-    body: JSON.stringify(body),
-  };
-}

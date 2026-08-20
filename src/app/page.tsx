@@ -111,25 +111,27 @@ export default function Home() {
 
     // Set final output
     const totalExecutionTime = (result.totalExecutionTime / 1000).toFixed(1);
+    const stopped = result.aborted === true;
     
-    setOutputPreview(`Workflow Execution ${result.success ? 'Complete' : 'Failed'}
+    setOutputPreview(`Workflow Execution ${result.success ? 'Complete' : stopped ? 'Stopped' : 'Failed'}
 ===========================
 Mode: ${config.config.mode.toUpperCase()}
-Summary: ${result.success ? 'Successfully' : 'Failed to'} process ${currentNodes.length} agent(s)
+Summary: ${result.success ? 'Successfully' : stopped ? 'Stopped before completing' : 'Failed to'} process ${currentNodes.length} agent(s)
 ${result.results.map(r => `- ${r.label} (${r.type}): ${r.success ? r.result : 'ERROR: ' + (r.error || 'Unknown error')}`).join('\n')}
 
 Connections: ${currentEdges.length} active connections
 Execution Time: ${totalExecutionTime}s
-Status: ${result.success ? 'SUCCESS' : 'FAILED'}
+Status: ${result.success ? 'SUCCESS' : stopped ? 'STOPPED' : 'FAILED'}
 Timestamp: ${new Date().toISOString()}`);
 
     setExecuting(false);
   }, [isExecuting, currentNodes, currentEdges, setExecuting, addLog, addReasoningStep, setOutputPreview, clearExecution, config, executionService]);
 
   const handleStop = useCallback(() => {
+    executionService?.abort();
     setExecuting(false);
     addLog({ level: 'warning', message: 'Workflow execution stopped by user' });
-  }, [setExecuting, addLog]);
+  }, [executionService, setExecuting, addLog]);
 
   // Custom Agent Builder callbacks
   const handleOpenCustomAgentBuilder = useCallback(() => {
@@ -152,11 +154,16 @@ Timestamp: ${new Date().toISOString()}`);
 
   // Node operation callbacks
   const handleNodeRename = useCallback((nodeId: string, newLabel: string) => {
+    setCurrentNodes(prev => prev.map(node =>
+      node.id === nodeId ? { ...node, data: { ...node.data, label: newLabel } } : node
+    ));
     updateNodeLabel(nodeId, newLabel);
     addLog({ level: 'info', message: `Node renamed to "${newLabel}"` });
   }, [updateNodeLabel, addLog]);
 
   const handleNodeDelete = useCallback((nodeId: string) => {
+    setCurrentNodes(prev => prev.filter(node => node.id !== nodeId));
+    setCurrentEdges(prev => prev.filter(edge => edge.source !== nodeId && edge.target !== nodeId));
     deleteNode(nodeId);
     addLog({ level: 'info', message: 'Node deleted' });
   }, [deleteNode, addLog]);
@@ -171,6 +178,9 @@ Timestamp: ${new Date().toISOString()}`);
   }, [currentNodes]);
 
   const handleSaveNodeConfig = useCallback((nodeId: string, config: Record<string, any>) => {
+    setCurrentNodes(prev => prev.map(node =>
+      node.id === nodeId ? { ...node, data: { ...node.data, config } } : node
+    ));
     updateNodeConfig(nodeId, config);
     addLog({ level: 'success', message: 'Node configuration updated' });
     setShowConfigEditor(false);
