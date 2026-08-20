@@ -32,6 +32,17 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# Infrastructure
+infrastructure/cdk.out/
+infrastructure/.cdk.staging/
+infrastructure/cdk.context.json
+infrastructure/lambda/*/dist/
+infrastructure/lambda/*/node_modules/
+infrastructure/lambda/layers/*/dist/
+infrastructure/lambda/layers/*/node_modules/
+infrastructure/node_modules/
+infrastructure/dist/
+
 # IDE
 .vscode/
 .idea/

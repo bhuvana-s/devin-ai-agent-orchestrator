@@ -1,0 +1,29 @@
+{
+  "environment": "development",
+  "aws": {
+    "region": "us-east-1",
+    "account": ""
+  },
+  "bedrock": {
+    "models": [
+      "amazon.titan-text-lite-v1"
+    ],
+    "region": "us-east-1"
+  },
+  "lambda": {
+    "timeout": 900,
+    "memorySize": 256,
+    "logRetention": 3
+  },
+  "api": {
+    "throttlingBurstLimit": 50,
+    "throttlingRateLimit": 25,
+    "enableLogging": true,
+    "enableMetrics": true
+  },
+  "tags": {
+    "Project": "AI-Agent-Dashboard",
+    "Environment": "Development",
+    "ManagedBy": "CDK"
+  }
+}

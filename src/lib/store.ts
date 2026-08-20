@@ -1,14 +1,35 @@
 import { create } from 'zustand';
 import { Node, Edge, Connection } from '@xyflow/react';
 
-export type AgentType = 'analyzer' | 'summarizer' | 'validator';
+export type AgentType = 'analyzer' | 'summarizer' | 'validator' | 'custom';
 export type AgentStatus = 'idle' | 'running' | 'completed' | 'error';
+
+export interface CustomAgentType {
+  id: string;
+  name: string;
+  label: string;
+  icon: string;
+  color: string;
+  gradient: string;
+  configFields: ConfigField[];
+  executionParams: Record<string, any>;
+}
+
+export interface ConfigField {
+  key: string;
+  label: string;
+  type: 'text' | 'number' | 'boolean' | 'select';
+  defaultValue: any;
+  options?: string[];
+  required?: boolean;
+}
 
 export interface AgentData {
   label: string;
   type: AgentType;
   status: AgentStatus;
   config: Record<string, any>;
+  customTypeId?: string;
 }
 
 export interface ExecutionLog {
@@ -38,19 +59,31 @@ export interface DashboardState {
   reasoningSteps: ReasoningStep[];
   outputPreview: string;
   
+  // Custom agents state
+  customAgentTypes: CustomAgentType[];
+  
   // UI state
   leftPanelOpen: boolean;
   rightPanelOpen: boolean;
-  rightPanelTab: 'logs' | 'reasoning' | 'output';
+  rightPanelTab: 'logs' | 'reasoning' | 'output' | 'config';
+  showCustomAgentBuilder: boolean;
+  showConfigEditor: boolean;
   
   // Actions
   setNodes: (nodes: Node<AgentData>[]) => void;
   setEdges: (edges: Edge[]) => void;
   addNode: (node: Node<AgentData>) => void;
   updateNode: (id: string, data: Partial<AgentData>) => void;
+  updateNodeLabel: (id: string, label: string) => void;
+  updateNodeConfig: (id: string, config: Record<string, any>) => void;
   deleteNode: (id: string) => void;
   setSelectedNode: (id: string | null) => void;
   onConnect: (connection: Connection) => void;
+  
+  // Custom agent actions
+  addCustomAgentType: (agentType: CustomAgentType) => void;
+  updateCustomAgentType: (id: string, agentType: Partial<CustomAgentType>) => void;
+  deleteCustomAgentType: (id: string) => void;
   
   // Execution actions
   setExecuting: (isExecuting: boolean) => void;
@@ -62,7 +95,9 @@ export interface DashboardState {
   // UI actions
   toggleLeftPanel: () => void;
   toggleRightPanel: () => void;
-  setRightPanelTab: (tab: 'logs' | 'reasoning' | 'output') => void;
+  setRightPanelTab: (tab: 'logs' | 'reasoning' | 'output' | 'config') => void;
+  setShowCustomAgentBuilder: (show: boolean) => void;
+  setShowConfigEditor: (show: boolean) => void;
 }
 
 export const useDashboardStore = create<DashboardState>((set) => ({
@@ -74,9 +109,12 @@ export const useDashboardStore = create<DashboardState>((set) => ({
   executionLogs: [],
   reasoningSteps: [],
   outputPreview: '',
+  customAgentTypes: [],
   leftPanelOpen: true,
   rightPanelOpen: true,
   rightPanelTab: 'logs',
+  showCustomAgentBuilder: false,
+  showConfigEditor: false,
   
   // Canvas actions
   setNodes: (nodes) => set({ nodes }),
@@ -89,6 +127,18 @@ export const useDashboardStore = create<DashboardState>((set) => ({
   updateNode: (id, data) => set((state) => ({
     nodes: state.nodes.map((node) =>
       node.id === id ? { ...node, data: { ...node.data, ...data } } : node
+    )
+  })),
+  
+  updateNodeLabel: (id, label) => set((state) => ({
+    nodes: state.nodes.map((node) =>
+      node.id === id ? { ...node, data: { ...node.data, label } } : node
+    )
+  })),
+  
+  updateNodeConfig: (id, config) => set((state) => ({
+    nodes: state.nodes.map((node) =>
+      node.id === id ? { ...node, data: { ...node.data, config } } : node
     )
   })),
   
@@ -106,6 +156,21 @@ export const useDashboardStore = create<DashboardState>((set) => ({
       type: 'glowing',
       animated: true 
     }]
+  })),
+  
+  // Custom agent actions
+  addCustomAgentType: (agentType) => set((state) => ({
+    customAgentTypes: [...state.customAgentTypes, agentType]
+  })),
+  
+  updateCustomAgentType: (id, agentType) => set((state) => ({
+    customAgentTypes: state.customAgentTypes.map((type) =>
+      type.id === id ? { ...type, ...agentType } : type
+    )
+  })),
+  
+  deleteCustomAgentType: (id) => set((state) => ({
+    customAgentTypes: state.customAgentTypes.filter((type) => type.id !== id)
   })),
   
   // Execution actions
@@ -139,5 +204,7 @@ export const useDashboardStore = create<DashboardState>((set) => ({
   // UI actions
   toggleLeftPanel: () => set((state) => ({ leftPanelOpen: !state.leftPanelOpen })),
   toggleRightPanel: () => set((state) => ({ rightPanelOpen: !state.rightPanelOpen })),
-  setRightPanelTab: (tab) => set({ rightPanelTab: tab })
+  setRightPanelTab: (tab) => set({ rightPanelTab: tab }),
+  setShowCustomAgentBuilder: (show) => set({ showCustomAgentBuilder: show }),
+  setShowConfigEditor: (show) => set({ showConfigEditor: show })
 }));

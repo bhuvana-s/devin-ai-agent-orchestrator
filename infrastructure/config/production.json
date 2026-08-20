@@ -1,0 +1,33 @@
+{
+  "environment": "production",
+  "aws": {
+    "region": "us-east-1",
+    "account": ""
+  },
+  "bedrock": {
+    "models": [
+      "amazon.titan-text-express-v1",
+      "amazon.titan-text-lite-v1",
+      "anthropic.claude-v2",
+      "anthropic.claude-v1"
+    ],
+    "region": "us-east-1"
+  },
+  "lambda": {
+    "timeout": 900,
+    "memorySize": 1024,
+    "logRetention": 30
+  },
+  "api": {
+    "throttlingBurstLimit": 200,
+    "throttlingRateLimit": 100,
+    "enableLogging": true,
+    "enableMetrics": true
+  },
+  "tags": {
+    "Project": "AI-Agent-Dashboard",
+    "Environment": "Production",
+    "ManagedBy": "CDK",
+    "CostCenter": "AI-Platform"
+  }
+}

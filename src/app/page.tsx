@@ -1,12 +1,18 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Navbar from '@/components/layout/Navbar';
 import AgentPalette from '@/components/panels/AgentPalette';
 import FlowCanvas from '@/components/canvas/FlowCanvas';
 import RightPanel from '@/components/panels/RightPanel';
+import CustomAgentBuilder from '@/components/panels/CustomAgentBuilder';
+import ConfigurationEditor from '@/components/panels/ConfigurationEditor';
+import SettingsModal from '@/components/settings/SettingsModal';
+import ConfigQuickPanel from '@/components/settings/ConfigQuickPanel';
 import { useDashboardStore } from '@/lib/store';
+import { useConfigStore } from '@/lib/config/store';
+import { ExecutionService } from '@/lib/config/execution-service';
 
 export default function Home() {
   const {
@@ -17,6 +23,7 @@ export default function Home() {
     leftPanelOpen,
     rightPanelOpen,
     rightPanelTab,
+    customAgentTypes,
     setExecuting,
     addLog,
     addReasoningStep,
@@ -25,10 +32,33 @@ export default function Home() {
     toggleRightPanel,
     setRightPanelTab,
     clearExecution,
+    addCustomAgentType,
+    deleteCustomAgentType,
+    updateNodeLabel,
+    deleteNode,
+    updateNodeConfig,
   } = useDashboardStore();
 
+  const config = useConfigStore();
   const [currentNodes, setCurrentNodes] = useState<any[]>([]);
   const [currentEdges, setCurrentEdges] = useState<any[]>([]);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [showCustomAgentBuilder, setShowCustomAgentBuilder] = useState(false);
+  const [showConfigEditor, setShowConfigEditor] = useState(false);
+  const [selectedNodeForConfig, setSelectedNodeForConfig] = useState<any>(null);
+  const [executionService, setExecutionService] = useState<ExecutionService | null>(null);
+
+  // Initialize execution service when config changes
+  useEffect(() => {
+    setExecutionService(new ExecutionService(config.config));
+  }, [config.config]);
+
+  // Handle custom event to open settings from ConfigQuickPanel
+  useEffect(() => {
+    const handleOpenSettings = () => setSettingsOpen(true);
+    window.addEventListener('open-settings', handleOpenSettings);
+    return () => window.removeEventListener('open-settings', handleOpenSettings);
+  }, []);
 
   const handleRun = useCallback(async () => {
     if (isExecuting) return;
@@ -37,96 +67,117 @@ export default function Home() {
       return;
     }
 
+    // Validate configuration before execution
+    if (!config.validate()) {
+      addLog({ level: 'error', message: 'Configuration validation failed. Please check your settings.' });
+      return;
+    }
+
     setExecuting(true);
     clearExecution();
 
-    // Simulate workflow execution
-    addLog({ level: 'info', message: `Starting workflow execution with ${currentNodes.length} agent(s)...` });
-
-    const executionResults: any[] = [];
-
-    // Execute each node
-    for (let i = 0; i < currentNodes.length; i++) {
-      const node = currentNodes[i];
-      const nodeType = node.data.type;
-      const nodeId = node.id;
-      const nodeLabel = node.data.label;
-
-      // Update node status to running
-      setCurrentNodes(prev => prev.map(n => 
-        n.id === nodeId ? { ...n, data: { ...n.data, status: 'running' as const } } : n
-      ));
-
-      addLog({ level: 'info', message: `${nodeLabel}: Starting execution...`, agentId: nodeId });
-
-      // Simulate different execution times based on agent type
-      const executionTime = nodeType === 'analyzer' ? 1500 : nodeType === 'summarizer' ? 1200 : 1000;
-      
-      // Add reasoning step based on agent type
-      switch (nodeType) {
-        case 'analyzer':
-          addReasoningStep({ agentId: nodeId, step: 'Analyzing input patterns and extracting key features...' });
-          break;
-        case 'summarizer':
-          addReasoningStep({ agentId: nodeId, step: 'Condensing analyzed data into concise format...' });
-          break;
-        case 'validator':
-          addReasoningStep({ agentId: nodeId, step: 'Checking against quality standards and validation rules...' });
-          break;
-      }
-
-      await new Promise(resolve => setTimeout(resolve, executionTime));
-
-      // Add result based on agent type
-      let result = '';
-      switch (nodeType) {
-        case 'analyzer':
-          result = `Extracted ${Math.floor(Math.random() * 20) + 5} key patterns from input data`;
-          break;
-        case 'summarizer':
-          result = `Generated ${Math.floor(Math.random() * 300) + 200}-character summary`;
-          break;
-        case 'validator':
-          result = `All quality checks passed (strictness: ${node.data.config.strictness || 'medium'})`;
-          break;
-      }
-
-      executionResults.push({
-        nodeId,
-        label: nodeLabel,
-        type: nodeType,
-        result
-      });
-
-      addLog({ level: 'success', message: `${nodeLabel}: ${result}`, agentId: nodeId });
-
-      // Update node status to completed
-      setCurrentNodes(prev => prev.map(n => 
-        n.id === nodeId ? { ...n, data: { ...n.data, status: 'completed' as const } } : n
-      ));
+    // Use execution service for workflow execution
+    if (!executionService) {
+      addLog({ level: 'error', message: 'Execution service not initialized' });
+      setExecuting(false);
+      return;
     }
 
+    const handleProgress = (nodeId: string, status: 'running' | 'completed' | 'error') => {
+      setCurrentNodes(prev => prev.map(n => 
+        n.id === nodeId ? { ...n, data: { ...n.data, status } } : n
+      ));
+    };
+
+    // Adapter function to match execution service log signature with store log signature
+    const logAdapter = (level: 'info' | 'warning' | 'error' | 'success', message: string, agentId?: string) => {
+      addLog({ level, message, agentId });
+    };
+
+    // Adapter function to match execution service reasoning signature with store reasoning signature
+    const reasoningAdapter = (agentId: string, step: string) => {
+      addReasoningStep({ agentId, step });
+    };
+
+    const result = await executionService.executeWorkflow(
+      currentNodes,
+      currentEdges,
+      handleProgress,
+      logAdapter,
+      reasoningAdapter
+    );
+
     // Set final output
-    const totalExecutionTime = executionResults.reduce((acc, _) => acc + 1.2, 0).toFixed(1);
+    const totalExecutionTime = (result.totalExecutionTime / 1000).toFixed(1);
     
-    setOutputPreview(`Workflow Execution Complete
+    setOutputPreview(`Workflow Execution ${result.success ? 'Complete' : 'Failed'}
 ===========================
-Summary: Successfully processed ${currentNodes.length} agent(s)
-${executionResults.map(r => `- ${r.label} (${r.type}): ${r.result}`).join('\n')}
+Mode: ${config.config.mode.toUpperCase()}
+Summary: ${result.success ? 'Successfully' : 'Failed to'} process ${currentNodes.length} agent(s)
+${result.results.map(r => `- ${r.label} (${r.type}): ${r.success ? r.result : 'ERROR: ' + (r.error || 'Unknown error')}`).join('\n')}
 
 Connections: ${currentEdges.length} active connections
 Execution Time: ${totalExecutionTime}s
-Status: SUCCESS
+Status: ${result.success ? 'SUCCESS' : 'FAILED'}
 Timestamp: ${new Date().toISOString()}`);
 
-    addLog({ level: 'success', message: 'Workflow execution completed successfully!' });
     setExecuting(false);
-  }, [isExecuting, currentNodes, currentEdges, setExecuting, addLog, addReasoningStep, setOutputPreview, clearExecution]);
+  }, [isExecuting, currentNodes, currentEdges, setExecuting, addLog, addReasoningStep, setOutputPreview, clearExecution, config, executionService]);
 
   const handleStop = useCallback(() => {
     setExecuting(false);
     addLog({ level: 'warning', message: 'Workflow execution stopped by user' });
   }, [setExecuting, addLog]);
+
+  // Custom Agent Builder callbacks
+  const handleOpenCustomAgentBuilder = useCallback(() => {
+    setShowCustomAgentBuilder(true);
+  }, []);
+
+  const handleCloseCustomAgentBuilder = useCallback(() => {
+    setShowCustomAgentBuilder(false);
+  }, []);
+
+  const handleSaveCustomAgent = useCallback((agentType: any) => {
+    addCustomAgentType(agentType);
+    addLog({ level: 'success', message: `Custom agent "${agentType.label}" created successfully` });
+  }, [addCustomAgentType, addLog]);
+
+  const handleDeleteCustomAgent = useCallback((id: string) => {
+    deleteCustomAgentType(id);
+    addLog({ level: 'info', message: 'Custom agent deleted' });
+  }, [deleteCustomAgentType, addLog]);
+
+  // Node operation callbacks
+  const handleNodeRename = useCallback((nodeId: string, newLabel: string) => {
+    updateNodeLabel(nodeId, newLabel);
+    addLog({ level: 'info', message: `Node renamed to "${newLabel}"` });
+  }, [updateNodeLabel, addLog]);
+
+  const handleNodeDelete = useCallback((nodeId: string) => {
+    deleteNode(nodeId);
+    addLog({ level: 'info', message: 'Node deleted' });
+  }, [deleteNode, addLog]);
+
+  const handleNodeEditConfig = useCallback((nodeId: string) => {
+    const node = currentNodes.find(n => n.id === nodeId);
+    if (node) {
+      setSelectedNodeForConfig(node);
+      setShowConfigEditor(true);
+    }
+  }, [currentNodes]);
+
+  const handleSaveNodeConfig = useCallback((nodeId: string, config: Record<string, any>) => {
+    updateNodeConfig(nodeId, config);
+    addLog({ level: 'success', message: 'Node configuration updated' });
+    setShowConfigEditor(false);
+    setSelectedNodeForConfig(null);
+  }, [updateNodeConfig, addLog]);
+
+  const handleCloseConfigEditor = useCallback(() => {
+    setShowConfigEditor(false);
+    setSelectedNodeForConfig(null);
+  }, []);
 
   return (
     <div className="h-screen w-screen flex flex-col bg-gray-950 overflow-hidden" style={{ height: '100vh' }}>
@@ -136,6 +187,7 @@ Timestamp: ${new Date().toISOString()}`);
         onRun={handleRun}
         onStop={handleStop}
         projectName="My AI Workflow"
+        onSettingsClick={() => setSettingsOpen(true)}
       />
 
       {/* Main Content Area */}
@@ -148,7 +200,12 @@ Timestamp: ${new Date().toISOString()}`);
             exit={{ x: -300, opacity: 0 }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
           >
-            <AgentPalette onClose={toggleLeftPanel} />
+            <AgentPalette 
+              onClose={toggleLeftPanel}
+              onOpenBuilder={handleOpenCustomAgentBuilder}
+              customAgentTypes={customAgentTypes}
+              onDeleteCustomAgent={handleDeleteCustomAgent}
+            />
           </motion.div>
         )}
 
@@ -158,6 +215,10 @@ Timestamp: ${new Date().toISOString()}`);
             onNodesChange={setCurrentNodes}
             onEdgesChange={setCurrentEdges}
             externalNodes={currentNodes}
+            onNodeRename={handleNodeRename}
+            onNodeDelete={handleNodeDelete}
+            onNodeEditConfig={handleNodeEditConfig}
+            customAgentTypes={customAgentTypes}
           />
           
           {/* Floating toggle button for left panel */}
@@ -186,6 +247,31 @@ Timestamp: ${new Date().toISOString()}`);
           />
         )}
       </div>
+
+      {/* Settings Modal */}
+      <SettingsModal
+        isOpen={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+      />
+
+      {/* Custom Agent Builder Modal */}
+      <CustomAgentBuilder
+        isOpen={showCustomAgentBuilder}
+        onClose={handleCloseCustomAgentBuilder}
+        onSave={handleSaveCustomAgent}
+      />
+
+      {/* Configuration Editor Modal */}
+      <ConfigurationEditor
+        isOpen={showConfigEditor}
+        onClose={handleCloseConfigEditor}
+        nodeData={selectedNodeForConfig}
+        customAgentTypes={customAgentTypes}
+        onSave={handleSaveNodeConfig}
+      />
+
+      {/* Configuration Quick Panel */}
+      <ConfigQuickPanel />
     </div>
   );
 }

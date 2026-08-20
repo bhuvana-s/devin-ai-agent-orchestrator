@@ -1,15 +1,18 @@
 import { Play, Square, Rocket, Settings, User, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import ExecutionModeToggle from '@/components/settings/ExecutionModeToggle';
+import ConfigStatusIndicator from '@/components/settings/ConfigStatusIndicator';
 
 interface NavbarProps {
   isExecuting: boolean;
   onRun: () => void;
   onStop: () => void;
   projectName?: string;
+  onSettingsClick?: () => void;
 }
 
-export default function Navbar({ isExecuting, onRun, onStop, projectName = "My Agent Workflow" }: NavbarProps) {
+export default function Navbar({ isExecuting, onRun, onStop, projectName = "My Agent Workflow", onSettingsClick }: NavbarProps) {
   return (
     <nav className="h-16 glass border-b border-glass-border flex items-center justify-between px-6 z-50">
       {/* Left section - Logo and project name */}
@@ -35,7 +38,9 @@ export default function Navbar({ isExecuting, onRun, onStop, projectName = "My A
       </div>
 
       {/* Center section - Run controls */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-4">
+        <ExecutionModeToggle />
+        
         <motion.button
           onClick={isExecuting ? onStop : onRun}
           className={cn(
@@ -72,6 +77,9 @@ export default function Navbar({ isExecuting, onRun, onStop, projectName = "My A
 
       {/* Right section - Status and user */}
       <div className="flex items-center gap-4">
+        {/* Configuration status */}
+        <ConfigStatusIndicator />
+        
         {/* Deployment status */}
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-900 border border-gray-700">
           <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
@@ -82,6 +90,7 @@ export default function Navbar({ isExecuting, onRun, onStop, projectName = "My A
 
         {/* Settings */}
         <motion.button
+          onClick={onSettingsClick}
           className="p-2 rounded-lg hover:bg-gray-900 transition-colors"
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}

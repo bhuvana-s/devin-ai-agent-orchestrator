@@ -1,0 +1,31 @@
+{
+  "environment": "staging",
+  "aws": {
+    "region": "us-east-1",
+    "account": ""
+  },
+  "bedrock": {
+    "models": [
+      "amazon.titan-text-express-v1",
+      "amazon.titan-text-lite-v1",
+      "anthropic.claude-v1"
+    ],
+    "region": "us-east-1"
+  },
+  "lambda": {
+    "timeout": 900,
+    "memorySize": 512,
+    "logRetention": 7
+  },
+  "api": {
+    "throttlingBurstLimit": 100,
+    "throttlingRateLimit": 50,
+    "enableLogging": true,
+    "enableMetrics": true
+  },
+  "tags": {
+    "Project": "AI-Agent-Dashboard",
+    "Environment": "Staging",
+    "ManagedBy": "CDK"
+  }
+}

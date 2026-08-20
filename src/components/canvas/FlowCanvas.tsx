@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useMemo } from 'react';
 import {
   ReactFlow,
   Background,
@@ -17,12 +17,8 @@ import {
 import '@xyflow/react/dist/style.css';
 import AgentNode from '@/components/nodes/AgentNode';
 import GlowingEdge from '@/components/nodes/GlowingEdge';
-import { AgentData, AgentType } from '@/lib/store';
+import { AgentData, AgentType, CustomAgentType } from '@/lib/store';
 import { cn } from '@/lib/utils';
-
-const nodeTypes = {
-  agent: AgentNode,
-};
 
 const edgeTypes = {
   glowing: GlowingEdge,
@@ -33,12 +29,43 @@ interface FlowCanvasProps {
   onNodesChange?: (nodes: Node<AgentData>[]) => void;
   onEdgesChange?: (edges: Edge[]) => void;
   externalNodes?: Node<AgentData>[];
+  onNodeRename?: (id: string, newLabel: string) => void;
+  onNodeDelete?: (id: string) => void;
+  onNodeEditConfig?: (id: string) => void;
+  customAgentTypes?: CustomAgentType[];
 }
 
-export default function FlowCanvas({ className, onNodesChange, onEdgesChange, externalNodes }: FlowCanvasProps) {
+export default function FlowCanvas({ 
+  className, 
+  onNodesChange, 
+  onEdgesChange, 
+  externalNodes,
+  onNodeRename,
+  onNodeDelete,
+  onNodeEditConfig,
+  customAgentTypes = []
+}: FlowCanvasProps) {
   const [nodes, setNodes, onNodesChangeInternal] = useNodesState<AgentData>([]);
   const [edges, setEdges, onEdgesChangeInternal] = useEdgesState<Edge>([]);
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
+
+  // Create a stable reference for callbacks to prevent unnecessary re-renders
+  const stableCallbacks = useMemo(() => ({
+    onRename: onNodeRename,
+    onDelete: onNodeDelete,
+    onEditConfig: onNodeEditConfig,
+    customAgentTypes: customAgentTypes
+  }), [onNodeRename, onNodeDelete, onNodeEditConfig, customAgentTypes]);
+
+  // Create nodeTypes with stable callbacks using useMemo
+  const nodeTypes = useMemo(() => ({
+    agent: (props: any) => (
+      <AgentNode 
+        {...props} 
+        {...stableCallbacks}
+      />
+    ),
+  }), [stableCallbacks]);
 
   // Expose nodes and edges to parent component
   useEffect(() => {
@@ -80,6 +107,7 @@ export default function FlowCanvas({ className, onNodesChange, onEdgesChange, ex
       event.preventDefault();
 
       const type = event.dataTransfer.getData('application/reactflow') as AgentType;
+      const customTypeId = event.dataTransfer.getData('custom-agent-id');
       
       if (!type || !reactFlowInstance) return;
 
@@ -88,21 +116,37 @@ export default function FlowCanvas({ className, onNodesChange, onEdgesChange, ex
         y: event.clientY,
       });
 
+      let label = type.charAt(0).toUpperCase() + type.slice(1);
+      let config: Record<string, any> = {};
+
+      // Handle custom agent types
+      if (type === 'custom' && customTypeId) {
+        const customAgent = customAgentTypes.find(agent => agent.id === customTypeId);
+        if (customAgent) {
+          label = customAgent.label;
+          // Initialize config with default values from custom agent definition
+          customAgent.configFields.forEach(field => {
+            config[field.key] = field.defaultValue;
+          });
+        }
+      }
+
       const newNode: Node<AgentData> = {
         id: `${type}-${Date.now()}`,
         type: 'agent',
         position,
         data: {
-          label: type.charAt(0).toUpperCase() + type.slice(1),
+          label,
           type,
           status: 'idle',
-          config: {},
+          config,
+          customTypeId: type === 'custom' ? customTypeId : undefined,
         },
       };
 
       setNodes((nds) => nds.concat(newNode));
     },
-    [reactFlowInstance, setNodes]
+    [reactFlowInstance, setNodes, customAgentTypes]
   );
 
   // Add some demo nodes on first load
