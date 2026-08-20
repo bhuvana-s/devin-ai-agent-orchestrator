@@ -131,7 +131,12 @@ async function executeAgent(request: AgentRequest, modelId: string): Promise<str
     case 'code':
       return await executeCodeAgent(request, modelId);
     case 'analysis':
+    case 'analyzer':
       return await executeAnalysisAgent(request, modelId);
+    case 'summarizer':
+      return await executeSummarizerAgent(request, modelId);
+    case 'validator':
+      return await executeValidatorAgent(request, modelId);
     default:
       throw new Error(`Unknown agent type: ${request.agentType}`);
   }
@@ -200,7 +205,7 @@ function generateRequestBody(modelId: string, prompt: string, parameters: any): 
 function parseResponseBody(modelId: string, responseBody: any): string {
   // Handle different response formats based on model type
   if (modelId.startsWith('meta.llama')) {
-    return responseBody.generation?.text || responseBody.content?.[0]?.text || '';
+    return responseBody.generation?.text || responseBody.generation || responseBody.content?.[0]?.text || '';
   } else if (modelId.startsWith('anthropic.claude')) {
     return responseBody.content?.[0]?.text || '';
   } else if (modelId.startsWith('mistral')) {
@@ -333,9 +338,65 @@ async function executeAnalysisAgent(request: AgentRequest, modelId: string): Pro
   
   console.log('Bedrock response:', JSON.stringify(responseBody, null, 2));
   
-  return parseResponseBody(modelId, responseBody) || 'No response generated';
+  return parseResponseBody(modelId, responseBody) || 'No analysis generated';
+}
+
+/**
+ * Execute summarizer agent
+ */
+async function executeSummarizerAgent(request: AgentRequest, modelId: string): Promise<string> {
+  const summaryPrompt = `Summarize the following content concisely while preserving key information:\n\n${request.prompt}\n\nProvide a clear, well-structured summary.`;
   
-  return responseBody.outputText || responseBody.results?.[0]?.outputText || 'No analysis generated';
+  const parameters = {
+    maxTokens: request.parameters?.maxTokens || 800,
+    temperature: request.parameters?.temperature || 0.3,
+    topP: request.parameters?.topP || 0.9,
+  };
+
+  const requestBody = generateRequestBody(modelId, summaryPrompt, parameters);
+
+  const command = new InvokeModelCommand({
+    modelId,
+    contentType: 'application/json',
+    accept: 'application/json',
+    body: JSON.stringify(requestBody),
+  });
+
+  const response = await bedrockClient.send(command);
+  const responseBody = JSON.parse(new TextDecoder().decode(response.body));
+  
+  console.log('Bedrock response:', JSON.stringify(responseBody, null, 2));
+  
+  return parseResponseBody(modelId, responseBody) || 'No summary generated';
+}
+
+/**
+ * Execute validator agent
+ */
+async function executeValidatorAgent(request: AgentRequest, modelId: string): Promise<string> {
+  const validationPrompt = `Validate the following and provide assessment:\n\n${request.prompt}\n\nEvaluate for correctness, completeness, quality, and potential issues. Provide specific feedback and recommendations.`;
+  
+  const parameters = {
+    maxTokens: request.parameters?.maxTokens || 1200,
+    temperature: request.parameters?.temperature || 0.2,
+    topP: request.parameters?.topP || 0.9,
+  };
+
+  const requestBody = generateRequestBody(modelId, validationPrompt, parameters);
+
+  const command = new InvokeModelCommand({
+    modelId,
+    contentType: 'application/json',
+    accept: 'application/json',
+    body: JSON.stringify(requestBody),
+  });
+
+  const response = await bedrockClient.send(command);
+  const responseBody = JSON.parse(new TextDecoder().decode(response.body));
+  
+  console.log('Bedrock response:', JSON.stringify(responseBody, null, 2));
+  
+  return parseResponseBody(modelId, responseBody) || 'No validation generated';
 }
 
 /**
