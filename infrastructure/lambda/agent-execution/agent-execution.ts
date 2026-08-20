@@ -1,6 +1,5 @@
 import { Context, APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
-import { createResponse } from '../layers/utils/response';
 
 // Bedrock runtime client
 const bedrockClient = new BedrockRuntimeClient({
@@ -219,4 +218,37 @@ async function executeAnalysisAgent(request: AgentRequest, modelId: string): Pro
   const responseBody = JSON.parse(new TextDecoder().decode(response.body));
   
   return responseBody.outputText || responseBody.results?.[0]?.outputText || 'No analysis generated';
+}
+
+/**
+ * Create HTTP response
+ */
+function createResponse(
+  statusCode: number,
+  body: any,
+  requestHeaders?: Record<string, string | undefined> | null
+): APIGatewayProxyResult {
+  const configuredOrigins = (process.env.ALLOWED_ORIGINS || '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+  const requestOrigin = Object.entries(requestHeaders || {})
+    .find(([key]) => key.toLowerCase() === 'origin')?.[1];
+  const allowOrigin = configuredOrigins.length === 0 || configuredOrigins.includes('*')
+    ? '*'
+    : requestOrigin && configuredOrigins.includes(requestOrigin)
+      ? requestOrigin
+      : configuredOrigins[0];
+
+  return {
+    statusCode,
+    headers: {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': allowOrigin,
+      'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token',
+      'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
+      ...(allowOrigin === '*' ? {} : { Vary: 'Origin' }),
+    },
+    body: JSON.stringify(body),
+  };
 }

@@ -21,7 +21,7 @@ export interface ApiResponse<T = any> {
  */
 export function createResponse<T = any>(
   statusCode: number,
-  body: T,
+  body: ApiResponse<T>,
   requestHeaders?: RequestHeaders
 ): APIGatewayProxyResult {
   const configuredOrigins = (process.env.ALLOWED_ORIGINS || '')
@@ -36,16 +36,6 @@ export function createResponse<T = any>(
       ? requestOrigin
       : configuredOrigins[0];
 
-  const responseBody = body && typeof body === 'object'
-    ? {
-        ...(body as Record<string, any>),
-        metadata: {
-          timestamp: new Date().toISOString(),
-          ...((body as unknown as ApiResponse).metadata || {}),
-        },
-      }
-    : body;
-
   return {
     statusCode,
     headers: {
@@ -55,7 +45,13 @@ export function createResponse<T = any>(
       'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
       ...(allowOrigin === '*' ? {} : { Vary: 'Origin' }),
     },
-    body: JSON.stringify(responseBody),
+    body: JSON.stringify({
+      ...body,
+      metadata: {
+        timestamp: new Date().toISOString(),
+        ...body.metadata,
+      },
+    }),
   };
 }
 

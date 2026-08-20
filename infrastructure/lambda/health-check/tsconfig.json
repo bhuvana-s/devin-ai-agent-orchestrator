@@ -20,10 +20,10 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "outDir": "dist",
-    "rootDir": "..",
+    "rootDir": ".",
     "moduleResolution": "node",
     "typeRoots": ["./node_modules/@types", "../../node_modules/@types"]
   },
-  "include": ["*.ts", "../layers/utils/response.ts"],
+  "include": ["*.ts"],
   "exclude": ["node_modules", "dist"]
 }

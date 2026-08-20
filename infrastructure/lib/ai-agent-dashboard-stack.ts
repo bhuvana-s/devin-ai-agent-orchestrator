@@ -257,7 +257,6 @@ export class AiAgentDashboardStack extends cdk.Stack {
         ALLOWED_ORIGINS: allowedOrigins.join(','),
       },
     });
-    healthLambda.addLayers(utilsLayer);
     
     healthResource.addMethod('GET', new apigateway.LambdaIntegration(healthLambda));
 
@@ -275,7 +274,6 @@ export class AiAgentDashboardStack extends cdk.Stack {
         ALLOWED_ORIGINS: allowedOrigins.join(','),
       },
     });
-    modelsLambda.addLayers(utilsLayer);
     
     modelsResource.addMethod('GET', new apigateway.LambdaIntegration(modelsLambda));
 
