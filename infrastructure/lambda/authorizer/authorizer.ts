@@ -18,7 +18,15 @@ export const handler = async (
 
   try {
     // Extract authorization header
-    const authHeader = event.authorizationToken || event.headers?.Authorization;
+    let authHeader: string | undefined;
+    
+    // Type guard for different authorizer event types
+    if ('authorizationToken' in event) {
+      authHeader = event.authorizationToken as string;
+    } else if ('headers' in event) {
+      const headers = event.headers as Record<string, string> | undefined;
+      authHeader = headers?.Authorization || headers?.authorization;
+    }
     
     if (!authHeader) {
       console.log('No authorization token provided');
