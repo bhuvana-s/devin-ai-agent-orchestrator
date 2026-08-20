@@ -10,6 +10,7 @@ interface ConfigurationEditorProps {
   isOpen: boolean;
   onClose: () => void;
   nodeData: AgentData | null;
+  nodeId: string | null;
   customAgentTypes?: CustomAgentType[];
   onSave: (nodeId: string, config: Record<string, any>) => void;
 }
@@ -18,6 +19,7 @@ export default function ConfigurationEditor({
   isOpen, 
   onClose, 
   nodeData, 
+  nodeId,
   customAgentTypes = [], 
   onSave 
 }: ConfigurationEditorProps) {
@@ -65,8 +67,8 @@ export default function ConfigurationEditor({
   };
 
   const handleSave = () => {
-    if (nodeData) {
-      onSave(nodeData.id || '', config);
+    if (nodeId) {
+      onSave(nodeId, config);
     }
     onClose();
   };

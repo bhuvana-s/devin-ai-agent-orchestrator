@@ -41,7 +41,8 @@ export function useExecutionConfig() {
  * Custom hook for simulation-specific configuration
  */
 export function useSimulationConfig() {
-  const { simulation, setSimulationConfig } = useConfigStore();
+  const config = useConfigStore();
+  const simulation = config.config.simulation;
   
   return {
     executionTimes: simulation.executionTimes,
@@ -49,15 +50,15 @@ export function useSimulationConfig() {
     errorSimulation: simulation.errorSimulation,
     
     setExecutionTimes: (times: Partial<typeof simulation.executionTimes>) => {
-      setSimulationConfig({ executionTimes: { ...simulation.executionTimes, ...times } });
+      config.setSimulationConfig({ executionTimes: { ...simulation.executionTimes, ...times } });
     },
     
     setResultGeneration: (gen: Partial<typeof simulation.resultGeneration>) => {
-      setSimulationConfig({ resultGeneration: { ...simulation.resultGeneration, ...gen } });
+      config.setSimulationConfig({ resultGeneration: { ...simulation.resultGeneration, ...gen } });
     },
     
     setErrorSimulation: (err: Partial<typeof simulation.errorSimulation>) => {
-      setSimulationConfig({ errorSimulation: { ...simulation.errorSimulation, ...err } });
+      config.setSimulationConfig({ errorSimulation: { ...simulation.errorSimulation, ...err } });
     },
   };
 }
@@ -66,7 +67,8 @@ export function useSimulationConfig() {
  * Custom hook for AWS-specific configuration
  */
 export function useAWSConfig() {
-  const { aws, setAWSConfig } = useConfigStore();
+  const config = useConfigStore();
+  const aws = config.config.aws;
   
   return {
     region: aws.region,
@@ -77,12 +79,12 @@ export function useAWSConfig() {
     stepFunctionArn: aws.stepFunctionArn,
     s3Bucket: aws.s3Bucket,
     
-    setRegion: (region: string) => setAWSConfig({ region }),
+    setRegion: (region: string) => config.setAWSConfig({ region }),
     setCredentials: (accessKeyId: string, secretAccessKey: string) => {
-      setAWSConfig({ accessKeyId, secretAccessKey });
+      config.setAWSConfig({ accessKeyId, secretAccessKey });
     },
-    setLambdaFunction: (name: string) => setAWSConfig({ lambdaFunctionName: name }),
-    setStepFunction: (arn: string) => setAWSConfig({ stepFunctionArn: arn }),
-    setS3Bucket: (bucket: string) => setAWSConfig({ s3Bucket: bucket }),
+    setLambdaFunction: (name: string) => config.setAWSConfig({ lambdaFunctionName: name }),
+    setStepFunction: (arn: string) => config.setAWSConfig({ stepFunctionArn: arn }),
+    setS3Bucket: (bucket: string) => config.setAWSConfig({ s3Bucket: bucket }),
   };
 }

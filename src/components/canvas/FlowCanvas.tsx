@@ -45,7 +45,7 @@ export default function FlowCanvas({
   onNodeEditConfig,
   customAgentTypes = []
 }: FlowCanvasProps) {
-  const [nodes, setNodes, onNodesChangeInternal] = useNodesState<AgentData>([]);
+  const [nodes, setNodes, onNodesChangeInternal] = useNodesState<Node<AgentData>>([]);
   const [edges, setEdges, onEdgesChangeInternal] = useEdgesState<Edge>([]);
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
 

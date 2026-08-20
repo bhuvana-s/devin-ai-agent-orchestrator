@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useState, useEffect } from 'react';
+import { Node, Edge } from '@xyflow/react';
 import { motion } from 'framer-motion';
 import Navbar from '@/components/layout/Navbar';
 import AgentPalette from '@/components/panels/AgentPalette';
@@ -10,7 +11,7 @@ import CustomAgentBuilder from '@/components/panels/CustomAgentBuilder';
 import ConfigurationEditor from '@/components/panels/ConfigurationEditor';
 import SettingsModal from '@/components/settings/SettingsModal';
 import ConfigQuickPanel from '@/components/settings/ConfigQuickPanel';
-import { useDashboardStore } from '@/lib/store';
+import { useDashboardStore, AgentData } from '@/lib/store';
 import { useConfigStore } from '@/lib/config/store';
 import { ExecutionService } from '@/lib/config/execution-service';
 
@@ -40,12 +41,13 @@ export default function Home() {
   } = useDashboardStore();
 
   const config = useConfigStore();
-  const [currentNodes, setCurrentNodes] = useState<any[]>([]);
-  const [currentEdges, setCurrentEdges] = useState<any[]>([]);
+  const [currentNodes, setCurrentNodes] = useState<Node<AgentData>[]>([]);
+  const [currentEdges, setCurrentEdges] = useState<Edge[]>([]);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [showCustomAgentBuilder, setShowCustomAgentBuilder] = useState(false);
   const [showConfigEditor, setShowConfigEditor] = useState(false);
   const [selectedNodeForConfig, setSelectedNodeForConfig] = useState<any>(null);
+  const [selectedNodeIdForConfig, setSelectedNodeIdForConfig] = useState<string | null>(null);
   const [executionService, setExecutionService] = useState<ExecutionService | null>(null);
 
   // Initialize execution service when config changes
@@ -162,7 +164,8 @@ Timestamp: ${new Date().toISOString()}`);
   const handleNodeEditConfig = useCallback((nodeId: string) => {
     const node = currentNodes.find(n => n.id === nodeId);
     if (node) {
-      setSelectedNodeForConfig(node);
+      setSelectedNodeForConfig(node.data);
+      setSelectedNodeIdForConfig(nodeId);
       setShowConfigEditor(true);
     }
   }, [currentNodes]);
@@ -177,6 +180,7 @@ Timestamp: ${new Date().toISOString()}`);
   const handleCloseConfigEditor = useCallback(() => {
     setShowConfigEditor(false);
     setSelectedNodeForConfig(null);
+    setSelectedNodeIdForConfig(null);
   }, []);
 
   return (
@@ -266,6 +270,7 @@ Timestamp: ${new Date().toISOString()}`);
         isOpen={showConfigEditor}
         onClose={handleCloseConfigEditor}
         nodeData={selectedNodeForConfig}
+        nodeId={selectedNodeIdForConfig}
         customAgentTypes={customAgentTypes}
         onSave={handleSaveNodeConfig}
       />

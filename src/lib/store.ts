@@ -30,6 +30,7 @@ export interface AgentData {
   status: AgentStatus;
   config: Record<string, any>;
   customTypeId?: string;
+  [key: string]: any; // Index signature for React Flow compatibility
 }
 
 export interface ExecutionLog {

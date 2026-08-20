@@ -29,6 +29,11 @@ const agentColors: Record<AgentType, { bg: string; border: string; icon: string 
     bg: 'bg-green-500/20',
     border: 'border-green-500/30',
     icon: 'text-green-400'
+  },
+  custom: {
+    bg: 'bg-orange-500/20',
+    border: 'border-orange-500/30',
+    icon: 'text-orange-400'
   }
 };
 
@@ -57,15 +62,17 @@ function AgentBlock({ type, label, description, icon, onDragStart, customTypeId,
 
   return (
     <motion.div
-      draggable
-      onDragStart={handleDragStart}
-      className={cn(
-        "glass-card cursor-grab active:cursor-grabbing group relative",
-        colors.bg, colors.border, "border"
-      )}
       whileHover={{ scale: 1.02, y: -2 }}
       whileTap={{ scale: 0.98 }}
     >
+      <div
+        draggable
+        onDragStart={handleDragStart}
+        className={cn(
+          "glass-card cursor-grab active:cursor-grabbing group relative",
+          colors.bg, colors.border, "border"
+        )}
+      >
       <div className="flex items-start gap-3">
         <div className={cn("p-2 rounded-lg bg-gray-900", colors.icon)}>
           {icon}
@@ -88,6 +95,7 @@ function AgentBlock({ type, label, description, icon, onDragStart, customTypeId,
           </div>
           <p className="text-sm text-gray-400 line-clamp-2">{description}</p>
         </div>
+      </div>
       </div>
     </motion.div>
   );

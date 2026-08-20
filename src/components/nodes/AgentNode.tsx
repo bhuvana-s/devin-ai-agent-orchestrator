@@ -35,7 +35,10 @@ const statusConfig = {
   error: { color: 'bg-red-500', label: 'Error' }
 };
 
-interface AgentNodeProps extends NodeProps<AgentData> {
+interface AgentNodeProps {
+  data: AgentData;
+  selected?: boolean;
+  id: string;
   onRename?: (id: string, newLabel: string) => void;
   onDelete?: (id: string) => void;
   onEditConfig?: (id: string) => void;
@@ -43,27 +46,28 @@ interface AgentNodeProps extends NodeProps<AgentData> {
 }
 
 function AgentNode({ data, selected, id, onRename, onDelete, onEditConfig, customAgentTypes }: AgentNodeProps) {
-  const config = agentConfig[data.type];
-  const status = statusConfig[data.status];
+  const agentData = data as AgentData;
+  const config = agentConfig[agentData.type];
+  const status = statusConfig[agentData.status];
   
   // Handle custom agent config
-  const customAgentConfig = data.type === 'custom' && data.customTypeId 
-    ? customAgentTypes?.find(type => type.id === data.customTypeId)
+  const customAgentConfig = agentData.type === 'custom' && agentData.customTypeId 
+    ? customAgentTypes?.find(type => type.id === agentData.customTypeId)
     : null;
   
   const effectiveConfig = customAgentConfig || config;
   
   // Editing state
   const [isEditing, setIsEditing] = useState(false);
-  const [editLabel, setEditLabel] = useState(data.label);
+  const [editLabel, setEditLabel] = useState(agentData.label);
   const [showMenu, setShowMenu] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Update edit label when data.label changes
+  // Update edit label when agentData.label changes
   useEffect(() => {
-    setEditLabel(data.label);
-  }, [data.label]);
+    setEditLabel(agentData.label);
+  }, [agentData.label]);
 
   // Focus input when editing starts
   useEffect(() => {
@@ -95,7 +99,7 @@ function AgentNode({ data, selected, id, onRename, onDelete, onEditConfig, custo
   };
 
   const handleLabelSubmit = () => {
-    if (editLabel.trim() && editLabel !== data.label && onRename) {
+    if (editLabel.trim() && editLabel !== agentData.label && onRename) {
       onRename(id, editLabel.trim());
     }
     setIsEditing(false);
@@ -105,7 +109,7 @@ function AgentNode({ data, selected, id, onRename, onDelete, onEditConfig, custo
     if (e.key === 'Enter') {
       handleLabelSubmit();
     } else if (e.key === 'Escape') {
-      setEditLabel(data.label);
+      setEditLabel(agentData.label);
       setIsEditing(false);
     }
   };
@@ -118,7 +122,7 @@ function AgentNode({ data, selected, id, onRename, onDelete, onEditConfig, custo
       className={cn(
         "glass-node min-w-[220px] rounded-xl border-2 transition-all duration-200",
         selected ? "border-sky-500 shadow-glow-strong" : "border-gray-700 hover:border-sky-400",
-        data.status === 'running' && "animate-pulse-slow"
+        agentData.status === 'running' && "animate-pulse-slow"
       )}
       onDoubleClick={handleDoubleClick}
     >
@@ -152,7 +156,7 @@ function AgentNode({ data, selected, id, onRename, onDelete, onEditConfig, custo
                 onClick={(e) => e.stopPropagation()}
               />
             ) : (
-              <span className="font-semibold text-white">{data.label}</span>
+              <span className="font-semibold text-white">{agentData.label}</span>
             )}
           </div>
           
@@ -230,9 +234,9 @@ function AgentNode({ data, selected, id, onRename, onDelete, onEditConfig, custo
         </div>
 
         {/* Config preview */}
-        {Object.keys(data.config).length > 0 && (
+        {Object.keys(agentData.config).length > 0 && (
           <div className="space-y-2">
-            {Object.entries(data.config).slice(0, 2).map(([key, value]) => (
+            {Object.entries(agentData.config).slice(0, 2).map(([key, value]) => (
               <div key={key} className="flex items-center justify-between text-sm">
                 <span className="text-gray-400 capitalize">{key}:</span>
                 <span className="text-gray-300 font-medium truncate max-w-[100px]">
