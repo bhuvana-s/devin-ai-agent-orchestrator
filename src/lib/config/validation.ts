@@ -71,10 +71,7 @@ export function validateExecutionConfig(config: Partial<ExecutionConfig>): Valid
       if (!aws.secretAccessKey || aws.secretAccessKey.trim() === '') {
         errors.push('AWS Secret Access Key is required for execution mode');
       }
-      // Lambda function is optional - we have a default one deployed
-      if (!aws.lambdaFunctionName && !aws.stepFunctionArn) {
-        warnings.push('No Lambda function or Step Function configured - using defaults');
-      }
+      // No need to validate Lambda/Step Function - we have defaults
     }
   }
 

@@ -516,7 +516,7 @@ function AWSTab({ config, onChange }: { config: any; onChange: (config: any) => 
 
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              Step Function ARN (optional)
+              Step Function ARN <span className="text-gray-500 font-normal">(not required - using Lambda)</span>
             </label>
             <input
               type="text"
@@ -525,7 +525,7 @@ function AWSTab({ config, onChange }: { config: any; onChange: (config: any) => 
                 ...config,
                 aws: { ...config.aws, stepFunctionArn: e.target.value }
               })}
-              placeholder="arn:aws:states:us-east-1:123456789012:stateMachine:MyWorkflow"
+              placeholder="Leave empty to use Lambda execution"
               className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-sky-500"
             />
           </div>
