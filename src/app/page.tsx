@@ -109,6 +109,12 @@ export default function Home() {
       reasoningAdapter
     );
 
+    // Enhanced error alerting for real mode
+    if (config.config.mode === 'real' && !result.success) {
+      // Visual alert for real AWS execution errors
+      alert(`🚨 REAL AWS EXECUTION ERROR\n\nMode: ${config.config.mode.toUpperCase()}\nError: ${result.error || 'Unknown error'}\n\nThis is a real AWS infrastructure error - not a simulation.\n\nPlease check:\n• AWS credentials in Settings\n• API URL configuration\n• Bedrock model access in AWS console\n\nSee logs panel for details.`);
+    }
+
     // Set final output
     const totalExecutionTime = (result.totalExecutionTime / 1000).toFixed(1);
     const stopped = result.aborted === true;

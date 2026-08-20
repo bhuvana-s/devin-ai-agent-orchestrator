@@ -39,6 +39,7 @@ export interface AWSConfig {
   stepFunctionArn?: string;
   s3Bucket?: string;
   apiUrl?: string;
+  modelId?: string;
 }
 
 /**

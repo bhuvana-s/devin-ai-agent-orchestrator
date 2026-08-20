@@ -36,6 +36,7 @@ export const DEFAULT_AWS_CONFIG = {
   stepFunctionArn: '', // Not required - using Lambda execution
   s3Bucket: '',
   apiUrl: 'https://rkx19twzgk.execute-api.us-east-1.amazonaws.com/production/',
+  modelId: 'meta.llama3-8b-instruct-v1:0',
 };
 
 /**

@@ -110,6 +110,13 @@ export class ExecutionService {
         };
       }
 
+      // Enhanced error reporting for real mode
+      if (this.config.mode === 'real') {
+        onLog?.('error', `🚨 REAL AWS EXECUTION ERROR: ${errorMessage}`);
+        onLog?.('error', `This is a real AWS infrastructure error - not a simulation`);
+        onLog?.('error', `Please check: AWS credentials, API URL, Bedrock model access`);
+      }
+
       onLog?.('error', `Workflow execution failed: ${errorMessage}`);
       
       return {
@@ -246,7 +253,12 @@ export class ExecutionService {
       throw new Error('AWS credentials are not configured');
     }
 
+    if (!aws.apiUrl) {
+      throw new Error('AWS API URL is not configured');
+    }
+
     onLog?.('info', 'Executing workflow in real AWS mode...');
+    onLog?.('warning', 'Real AWS execution - any errors will be reported immediately');
 
     // This is a placeholder for real AWS execution
     // In a real implementation, this would use AWS SDK to invoke Lambda functions or Step Functions
@@ -265,20 +277,38 @@ export class ExecutionService {
       onReasoning?.(nodeId, 'Invoking AWS Lambda function...');
 
       try {
-        // Simulate API call with retry logic
+        // Real AWS API call to deployed infrastructure
         const result = await this.executeWithRetry(
           async () => {
-            // Placeholder for actual AWS Lambda invocation
-            // const lambda = new LambdaClient({ region: aws.region, credentials: {...} });
-            // const command = new InvokeCommand({ FunctionName: aws.lambdaFunctionName, ... });
-            // const response = await lambda.send(command);
+            const apiUrl = (aws.apiUrl || '').replace(/\/$/, '');
+            const response = await fetch(`${apiUrl}/agents/execute`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer sk-test-key`, // Using test key for now
+              },
+              body: JSON.stringify({
+                agentType: nodeType,
+                prompt: node.data.config?.prompt || 'Execute agent',
+                modelId: aws.modelId || 'meta.llama3-8b-instruct-v1:0',
+              }),
+              signal,
+            });
+
+            if (!response.ok) {
+              const errorText = await response.text();
+              throw new Error(`AWS API error (${response.status}): ${errorText}`);
+            }
+
+            const data = await response.json();
             
-            // Simulate API delay
-            await this.delay(2000, signal);
+            if (!data.success) {
+              throw new Error(`AWS execution failed: ${data.error || 'Unknown error'}`);
+            }
             
             return {
               success: true,
-              result: `AWS execution completed for ${nodeLabel}`,
+              result: data.result || 'AWS execution completed',
             };
           },
           retry,
@@ -303,21 +333,25 @@ export class ExecutionService {
         }
 
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        
+        // Critical: In real mode, alert immediately and don't continue
         onProgress?.(nodeId, 'error');
-        onLog?.('error', `${nodeLabel}: ${errorMessage}`, nodeId);
+        onLog?.('error', `${nodeLabel}: AWS execution error - ${errorMessage}`, nodeId);
+        onLog?.('error', `🚨 REAL AWS MODE - Execution stopped due to error`, nodeId);
+        onLog?.('error', `Error details: ${errorMessage}`, nodeId);
 
         results.push({
           nodeId,
           label: nodeLabel,
           type: nodeType,
-          result: 'Execution failed',
+          result: 'AWS execution failed',
           success: false,
           error: errorMessage,
           executionTime: 0,
         });
 
-        // Continue execution or stop based on configuration
-        // For now, we'll continue
+        // In real mode, stop execution immediately to clearly show the error
+        throw new Error(`Real AWS execution failed for ${nodeLabel}: ${errorMessage}`);
       }
     }
 
